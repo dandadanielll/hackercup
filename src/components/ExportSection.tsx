@@ -224,42 +224,42 @@ export const ExportSection: React.FC<ExportSectionProps> = ({ data, regionName, 
     <div id="export-section" className="space-y-4 mb-12">
 
       {/* ── Publish to LokalBank ────────────────────────────────────────── */}
-      <div className="aralkada-card border-2 border-aralkada-yellow bg-aralkada-sidebar text-white">
+      <div className="aralkada-card border-2 border-aralkada-border bg-aralkada-sidebar text-white">
         <div className="aralkada-card-inner">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="p-1.5 bg-aralkada-yellow rounded-md">
-                  <Library className="w-4 h-4 text-aralkada-border" />
+              <div className="flex items-center gap-3 mb-2 flex-wrap">
+                <span className="p-2 bg-aralkada-yellow rounded-xl border-2 border-aralkada-border">
+                  <Library className="w-5 h-5 text-aralkada-border" />
                 </span>
-                <h3 className="text-base font-bold">Publish to LokalBank</h3>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-aralkada-yellow text-aralkada-border uppercase tracking-wider">
+                <h3 className="text-lg font-extrabold text-white">Publish to LokalBank</h3>
+                <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-aralkada-yellow text-aralkada-border border-2 border-aralkada-border uppercase tracking-wider">
                   Teacher Verified
                 </span>
               </div>
-              <p className="text-xs text-white/70 max-w-lg">
+              <p className="text-sm text-white/70 font-medium max-w-lg">
                 Share your verified, localized lesson with other teachers in your region. Published lessons appear in LokalBank for free reuse.
               </p>
             </div>
 
             <div className="flex items-center gap-3 shrink-0">
               {publishState === 'done' ? (
-                <div className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 rounded-lg text-sm font-bold text-white">
+                <div className="flex items-center gap-2 px-5 py-3 bg-aralkada-green rounded-2xl border-2 border-aralkada-border text-sm font-bold text-aralkada-border shadow-[3px_3px_0_0_#463E2C]">
                   <CheckCircle2 className="w-4 h-4" /> Published to LokalBank!
                 </div>
               ) : publishState === 'confirming' ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-white/80 font-medium">Publish for all teachers to see?</span>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="text-sm text-white/80 font-medium">Publish for all teachers to see?</span>
                   <button
                     onClick={() => setPublishState('idle')}
-                    className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+                    className="px-4 py-2 text-sm font-bold rounded-2xl bg-white/10 hover:bg-white/20 text-white border-2 border-white/20 transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     id="confirm-publish-btn"
                     onClick={handlePublishToLokalBank}
-                    className="px-4 py-1.5 text-xs font-bold rounded-lg bg-aralkada-yellow text-aralkada-border hover:brightness-110 transition-all cursor-pointer"
+                    className="aralkada-btn-yellow"
                   >
                     Yes, Publish
                   </button>
@@ -269,7 +269,7 @@ export const ExportSection: React.FC<ExportSectionProps> = ({ data, regionName, 
                   id="publish-lokalbank-btn"
                   onClick={handlePublishToLokalBank}
                   disabled={publishState === 'publishing'}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-aralkada-yellow text-aralkada-border font-bold text-sm border-b-4 border-yellow-600 hover:brightness-110 active:border-b-0 active:mt-1 transition-all cursor-pointer disabled:opacity-60"
+                  className="aralkada-btn-yellow flex items-center gap-2 disabled:opacity-60"
                 >
                   {publishState === 'publishing' ? (
                     <><Loader2 className="w-4 h-4 animate-spin" /> Publishing…</>
@@ -284,43 +284,43 @@ export const ExportSection: React.FC<ExportSectionProps> = ({ data, regionName, 
       </div>
 
       {/* ── Export & Copy ───────────────────────────────────────────────── */}
-      <div className="aralkada-card bg-aralkada-sidebar text-white">
+      <div className="aralkada-card bg-aralkada-sidebar">
         <div className="aralkada-card-inner">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div>
-              <div className="flex items-center gap-2">
-                <span className="p-1.5 bg-aralkada-blue text-white rounded-md">
-                  <Share2 className="w-4 h-4" />
+              <div className="flex items-center gap-3 mb-2">
+                <span className="p-2 bg-aralkada-blue rounded-xl border-2 border-aralkada-border">
+                  <Share2 className="w-5 h-5 text-white" />
                 </span>
-                <h3 className="text-base font-bold">Export & Share</h3>
+                <h3 className="text-lg font-extrabold text-white">Export & Share</h3>
               </div>
-              <p className="text-xs text-white/70 mt-1">
+              <p className="text-sm text-white/70 font-medium">
                 Download or copy for DepEd DLL, printing, or classroom distribution.
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+            <div className="flex flex-wrap items-center justify-end gap-3 w-full md:w-auto shrink-0">
               <button
                 id="copy-localized-btn"
                 onClick={() => handleCopyText(data.localized, 'localized')}
-                className="aralkada-btn-secondary"
+                className="aralkada-btn-secondary flex items-center gap-1.5"
               >
                 {copiedType === 'localized' ? (
-                  <><Check className="w-3.5 h-3.5 text-emerald-600 inline" /> Copied!</>
+                  <><Check className="w-4 h-4 text-aralkada-green inline" /> Copied!</>
                 ) : (
-                  <><Copy className="w-3.5 h-3.5 inline" /> Copy Localized Plan</>
+                  <><Copy className="w-4 h-4 inline" /> Copy Localized Plan</>
                 )}
               </button>
 
               <button
                 id="copy-translation-export-btn"
                 onClick={() => handleCopyText(data.translation.text, 'translation')}
-                className="aralkada-btn-secondary"
+                className="aralkada-btn-secondary flex items-center gap-1.5"
               >
                 {copiedType === 'translation' ? (
-                  <><Check className="w-3.5 h-3.5 text-emerald-600 inline" /> Copied!</>
+                  <><Check className="w-4 h-4 text-aralkada-green inline" /> Copied!</>
                 ) : (
-                  <><FileText className="w-3.5 h-3.5 inline" /> Copy Dialect Pass</>
+                  <><FileText className="w-4 h-4 inline" /> Copy Dialect Pass</>
                 )}
               </button>
 
@@ -328,7 +328,7 @@ export const ExportSection: React.FC<ExportSectionProps> = ({ data, regionName, 
                 id="download-pdf-btn"
                 onClick={handleDownloadPdf}
                 disabled={isExportingPdf}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-aralkada-yellow text-aralkada-border font-bold text-sm border-b-4 border-yellow-600 hover:brightness-110 active:border-b-0 active:mt-1 transition-all cursor-pointer disabled:opacity-60"
+                className="aralkada-btn-yellow flex items-center gap-1.5 disabled:opacity-60"
               >
                 {isExportingPdf ? (
                   <><Loader2 className="w-4 h-4 animate-spin" /> Generating PDF…</>

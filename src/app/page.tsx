@@ -90,56 +90,79 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-full px-4 md:px-8 py-6 md:py-10 max-w-[1200px] mx-auto">
-      {/* Page Header matching ARALKADA style */}
-      <div className="mb-10">
-        <div className="inline-flex items-center gap-2 bg-aralkada-cream-pill px-4 py-1.5 rounded-full border-2 border-aralkada-border font-extrabold text-[10px] tracking-widest text-aralkada-sidebar mb-4 uppercase">
-          <GraduationCap className="w-3.5 h-3.5" />
-          Lesson Contextualizer
+    <div className="min-h-full flex flex-col">
+      {/* Edge-to-edge Header */}
+      <div className="bg-black/[0.06] border-b border-black/[0.08] pt-5 md:pt-6 pb-8 px-4 md:px-8">
+        <div className="max-w-[1200px] mx-auto">
+          <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight mb-1 text-[#362f21]">KonTeksto</h1>
+          <p className="text-[#77756e] font-medium text-sm md:text-base">
+            Upload any standard lesson plan and instantly translate it to Mother Tongue while swapping foreign cultural concepts for local equivalents.
+          </p>
         </div>
-        <h1 className="text-4xl font-extrabold tracking-tight mb-3">LokalSwap</h1>
-        <p className="text-aralkada-muted font-medium text-lg">
-          Upload any standard lesson plan and instantly translate it to Mother Tongue while swapping foreign cultural concepts for local equivalents.
-        </p>
       </div>
 
-      {/* Step tabs */}
-      <div className="flex border-b-2 border-aralkada-border/20 mb-8 font-extrabold text-sm tracking-wide uppercase gap-8">
-        <div className="pb-3 border-b-[3px] border-aralkada-blue text-aralkada-blue cursor-pointer">1. Upload & Setup</div>
-        <div className={`pb-3 border-b-[3px] cursor-pointer ${localizeData ? 'border-aralkada-blue text-aralkada-blue' : 'border-transparent text-aralkada-muted'}`}>2. Contextualize & Diff</div>
-        <div className={`pb-3 border-b-[3px] cursor-pointer ${localizeData ? 'border-aralkada-blue text-aralkada-blue' : 'border-transparent text-aralkada-muted'}`}>3. Export</div>
-      </div>
+      {/* Main Content */}
+      <div className="flex-1 px-4 md:px-8 py-8 max-w-[1200px] w-full mx-auto">
 
-      <div className="space-y-8">
-        <UploadSection
-          lessonText={lessonText}
-          setLessonText={setLessonText}
-          uploadMetadata={uploadMetadata}
-          setUploadMetadata={setUploadMetadata}
-          onGenerate={handleGenerate}
-          isGenerating={isGenerating}
-          isRetrying={isRetrying}
-          fileName={fileName}
-          setFileName={setFileName}
-        />
+        {/* Step tabs */}
+        <div className="flex justify-center border-b-2 border-aralkada-border/20 mb-12 font-extrabold text-sm md:text-base tracking-wide uppercase gap-12 md:gap-24">
+          <div 
+            onClick={() => document.getElementById('step-1')?.scrollIntoView({ behavior: 'smooth' })}
+            className="pb-3 border-b-[3px] border-aralkada-blue text-aralkada-blue cursor-pointer hover:opacity-80 transition-opacity"
+          >
+            1. Upload & Setup
+          </div>
+          <div 
+            onClick={() => localizeData && document.getElementById('step-2')?.scrollIntoView({ behavior: 'smooth' })}
+            className={`pb-3 border-b-[3px] cursor-pointer transition-opacity ${localizeData ? 'border-aralkada-blue text-aralkada-blue hover:opacity-80' : 'border-transparent text-aralkada-muted opacity-50 cursor-not-allowed'}`}
+          >
+            2. Contextualize & Diff
+          </div>
+          <div 
+            onClick={() => localizeData && document.getElementById('step-3')?.scrollIntoView({ behavior: 'smooth' })}
+            className={`pb-3 border-b-[3px] cursor-pointer transition-opacity ${localizeData ? 'border-aralkada-blue text-aralkada-blue hover:opacity-80' : 'border-transparent text-aralkada-muted opacity-50 cursor-not-allowed'}`}
+          >
+            3. Export
+          </div>
+        </div>
 
-        {errorMsg && (
-          <div className="aralkada-card bg-rose-50 border-rose-600 !p-4 flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
-            <div>
-              <span className="font-bold text-rose-900">Error: </span>
-              <span className="font-medium text-rose-800">{errorMsg}</span>
+        <div className="space-y-12">
+          <div id="step-1" className="scroll-mt-8">
+            <UploadSection
+              lessonText={lessonText}
+              setLessonText={setLessonText}
+              uploadMetadata={uploadMetadata}
+              setUploadMetadata={setUploadMetadata}
+              onGenerate={handleGenerate}
+              isGenerating={isGenerating}
+              isRetrying={isRetrying}
+              fileName={fileName}
+              setFileName={setFileName}
+            />
+          </div>
+
+          {errorMsg && (
+            <div className="aralkada-card bg-rose-50 border-rose-600 !p-4 flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+              <div>
+                <span className="font-bold text-rose-900">Error: </span>
+                <span className="font-medium text-rose-800">{errorMsg}</span>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {localizeData && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-16">
-            <DiffViewer data={localizeData} onUpdateLocalizedText={handleUpdateLocalizedText} />
-            <TranslationCard translation={localizeData.translation} onUpdateTranslationText={handleUpdateTranslationText} />
-            <ExportSection data={localizeData} regionName={currentRegion.name} uploadMetadata={uploadMetadata} />
-          </div>
-        )}
+          {localizeData && (
+            <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-16">
+              <div id="step-2" className="space-y-12 scroll-mt-8">
+                <DiffViewer data={localizeData} onUpdateLocalizedText={handleUpdateLocalizedText} />
+                <TranslationCard translation={localizeData.translation} onUpdateTranslationText={handleUpdateTranslationText} />
+              </div>
+              <div id="step-3" className="scroll-mt-8">
+                <ExportSection data={localizeData} regionName={currentRegion.name} uploadMetadata={uploadMetadata} />
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
