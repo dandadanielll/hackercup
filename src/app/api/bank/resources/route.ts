@@ -1,17 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/src/lib/supabase';
-import { createClient } from '@supabase/supabase-js';
 import { RESOURCE_TYPES, SUBJECTS, GRADES } from '@/src/lib/bank/resourceInput';
-
-function getUserClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
-}
+import { requireDemoTeacher } from '@/src/lib/bank/demoTeacher';
 
 // GET /api/bank/resources
+
 // Returns all published resources with avg_rating and review_count aggregated
 export async function GET() {
   try {
@@ -48,24 +41,16 @@ export async function GET() {
 }
 
 // POST /api/bank/resources
-// Authenticated: save a new resource (text already extracted by the caller)
+// Authenticated (Seeded Teacher Only): save a new resource
 export async function POST(req: NextRequest) {
   try {
-    // Validate auth via bearer token sent from the browser client
-    const authHeader = req.headers.get('authorization') ?? '';
-    const token = authHeader.replace('Bearer ', '');
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized. Please sign in.', stage: 'authorization' }, { status: 401 });
-    }
-
-    const userClient = getUserClient();
-    const { data: { user }, error: authError } = await userClient.auth.getUser(token);
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid auth token.', stage: 'authorization' }, { status: 401 });
-    }
+    const authResult = await requireDemoTeacher(req);
+    if (authResult instanceof NextResponse) return authResult;
+    const { userId } = authResult;
 
     const body = await req.json();
     const { teacher_name, title, resource_type, subject, grade_level, content_text } = body;
+
 
     // Strict metadata validation using resourceInput rules
     if (!teacher_name?.trim()) {
@@ -94,7 +79,7 @@ export async function POST(req: NextRequest) {
     const { data, error } = await admin
       .from('bank_resources')
       .insert({
-        uploader_id: user.id,
+        uploader_id: userId,
         teacher_name: teacher_name.trim(),
         title: title.trim(),
         resource_type,
@@ -105,6 +90,7 @@ export async function POST(req: NextRequest) {
       })
       .select()
       .single();
+
 
     if (error) throw error;
 

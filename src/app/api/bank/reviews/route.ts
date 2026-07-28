@@ -1,14 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/src/lib/supabase';
-import { createClient } from '@supabase/supabase-js';
-
-function getUserClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
-}
+import { requireDemoTeacher } from '@/src/lib/bank/demoTeacher';
 
 // GET /api/bank/reviews?resource_id=...
 export async function GET(req: NextRequest) {
@@ -36,16 +28,12 @@ export async function GET(req: NextRequest) {
 }
 
 // POST /api/bank/reviews
-// Authenticated: submit a review for a resource
+// Authenticated (Seeded Teacher Only): submit a review for a resource
 export async function POST(req: NextRequest) {
   try {
-    const authHeader = req.headers.get('authorization') ?? '';
-    const token = authHeader.replace('Bearer ', '');
-    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const userClient = getUserClient();
-    const { data: { user }, error: authError } = await userClient.auth.getUser(token);
-    if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await requireDemoTeacher(req);
+    if (authResult instanceof NextResponse) return authResult;
+    const { userId } = authResult;
 
     const body = await req.json();
     const { resource_id, rating, comment, author_label } = body;
@@ -56,11 +44,23 @@ export async function POST(req: NextRequest) {
     if (comment.length > 2000) return NextResponse.json({ error: 'Comment too long (max 2,000 chars)' }, { status: 400 });
 
     const admin = getSupabaseAdmin();
+
+    // Verify resource exists before attaching review
+    const { data: resource, error: resErr } = await admin
+      .from('bank_resources')
+      .select('id')
+      .eq('id', resource_id)
+      .single();
+
+    if (resErr || !resource) {
+      return NextResponse.json({ error: 'Resource not found', stage: 'validation' }, { status: 404 });
+    }
+
     const { data, error } = await admin
       .from('bank_reviews')
       .insert({
         resource_id,
-        author_id: user.id,
+        author_id: userId,
         author_label: (author_label || 'Teacher').trim(),
         rating: Number(rating),
         comment: comment.trim(),
@@ -76,3 +76,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: err.message || 'Failed to submit review' }, { status: 500 });
   }
 }
+
