@@ -1,118 +1,53 @@
-import { RegionInfo, LanguageInfo, SampleLesson } from '../types';
+import { RegionProfile, RegionKey, SampleLesson } from '../types';
 
-export const PHILIPPINE_REGIONS: RegionInfo[] = [
-  {
-    id: 'bicol_naga',
-    name: 'Bicol Region',
-    province: 'Camarines Sur',
-    majorCity: 'Naga City',
-    description: 'Home of Mt. Isarog, Naga People’s Mall, tricycles, pili nuts, and Bikol Express.',
-    defaultLanguageId: 'central_bikol',
-    commonEntities: {
-      transport: 'tricycle',
-      market: "Naga People's Mall",
-      food: 'saging (bananas)',
-      landmark: 'Peñafrancia Basilica',
-    },
-  },
-  {
-    id: 'cebu_city',
-    name: 'Central Visayas',
-    province: 'Cebu',
-    majorCity: 'Cebu City',
-    description: 'Home of Carbon Market, habal-habal, e-trikes, Cebu mangoes, and Colon Street.',
-    defaultLanguageId: 'cebuano',
-    commonEntities: {
-      transport: 'habal-habal',
-      market: 'Carbon Public Market',
-      food: 'mangga (sweet mangoes)',
-      landmark: "Magellan's Cross",
-    },
-  },
-  {
-    id: 'davao_city',
-    name: 'Davao Region',
-    province: 'Davao del Sur',
-    majorCity: 'Davao City',
-    description: 'Home of Bankerohan Market, Mt. Apo, durian, and colorful utility tricycles.',
-    defaultLanguageId: 'cebuano',
-    commonEntities: {
-      transport: 'multicab',
-      market: 'Bankerohan Public Market',
-      food: 'durian',
-      landmark: 'Mount Apo Park',
-    },
-  },
-  {
-    id: 'ilocos_laoag',
-    name: 'Ilocos Region',
-    province: 'Ilocos Norte',
-    majorCity: 'Laoag City',
-    description: 'Home of Laoag Market, kalesa, Ilocos empanada, dragonfruit, and Paoay Church.',
-    defaultLanguageId: 'ilocano',
-    commonEntities: {
-      transport: 'kalesa',
-      market: 'Laoag City Commercial Complex',
-      food: 'empanada',
-      landmark: 'Paoay Church Plaza',
-    },
-  },
-  {
-    id: 'ncr_manila',
+// ─── Region Profiles (3 scoped regions for demo) ─────────────────────────
+export const REGION_PROFILES: Record<RegionKey, RegionProfile> = {
+  ncr: {
     name: 'National Capital Region (NCR)',
-    province: 'Metro Manila',
-    majorCity: 'Manila / Quezon City',
-    description: 'Home of Divisoria Market, LRT/MRT, jeepneys, Luneta Park, and street food stalls.',
-    defaultLanguageId: 'tagalog',
-    commonEntities: {
-      transport: 'jeepney',
-      market: 'Divisoria Market',
-      food: 'saging na saba',
-      landmark: 'Rizal Park (Luneta)',
+    motherTongue: 'Filipino',
+    motherTongueLabel: 'Filipino/Tagalog',
+    environment: 'urban',
+    environmentDescriptor:
+      'Dense urban setting: jeepneys, MRT/LRT trains, malls, heavy traffic, sari-sari stores, market vendors, condominiums, call center culture',
+    knownEntities: {
+      transport: ['jeepney', 'MRT', 'LRT', 'tricycle', 'grab/taxi'],
+      places: ['SM Mall', 'Divisoria Market', 'public market', 'barangay hall'],
+      food: ['street food (fishball, kwek-kwek)', 'carinderia meals', 'saging na saba'],
     },
   },
-  {
-    id: 'panay_iloilo',
-    name: 'Western Visayas',
-    province: 'Iloilo',
-    majorCity: 'Iloilo City',
-    description: 'Home of Iloilo Central Market, tricycle, La Paz batchoy, and Iloilo Esplanade.',
-    defaultLanguageId: 'hiligaynon',
-    commonEntities: {
-      transport: 'jeepney',
-      market: 'Iloilo Central Market',
-      food: 'batchoy',
-      landmark: 'Iloilo River Esplanade',
+  bicol: {
+    name: 'Bicol Region',
+    motherTongue: 'Central Bikol',
+    motherTongueLabel: 'Central Bikol (Bikol Central)',
+    environment: 'agricultural-coastal',
+    environmentDescriptor:
+      'Mixed agricultural and coastal setting: pili nut farming, rice fields, fishing communities, Mt. Isarog/Mt. Mayon backdrop, tricycles as primary transport',
+    knownEntities: {
+      transport: ['tricycle', 'Bikol Express (bus)'],
+      places: ["Naga People's Mall", 'public market', 'Peñafrancia Basilica'],
+      food: ['pili nuts', 'saging na saba', 'Bicol Express (dish)', 'laing'],
     },
   },
-  {
-    id: 'leyte_tacloban',
-    name: 'Eastern Visayas',
-    province: 'Leyte',
-    majorCity: 'Tacloban City',
-    description: 'Home of Tacloban Supermarket, motorcabs, binagol, and San Juanico Bridge.',
-    defaultLanguageId: 'waray',
-    commonEntities: {
-      transport: 'motorcab',
-      market: 'Tacloban City Public Market',
-      food: 'binagol',
-      landmark: 'San Juanico Bridge Park',
+  central_visayas: {
+    name: 'Central Visayas (Cebu)',
+    motherTongue: 'Cebuano',
+    motherTongueLabel: 'Cebuano (Bisaya)',
+    environment: 'island-marine',
+    environmentDescriptor:
+      'Island and marine-heavy setting: fishing ports, coastal towns, inter-island ferries, tricycles/habal-habal, mountain barangays',
+    knownEntities: {
+      transport: ['habal-habal', 'tricycle', 'pump boat/ferry'],
+      places: ['Carbon Market', 'local port', 'public market'],
+      food: ['bangus (milkfish)', 'dried fish', 'lechon', 'budbud'],
     },
   },
-];
+};
 
-export const TARGET_LANGUAGES: LanguageInfo[] = [
-  { id: 'central_bikol', name: 'Central Bikol', nativeName: 'Bikol Central', region: 'Bicol Region' },
-  { id: 'cebuano', name: 'Cebuano', nativeName: 'Sinugbuanong Binisaya', region: 'Central & Southern Philippines' },
-  { id: 'ilocano', name: 'Ilocano', nativeName: 'Ilokano', region: 'Northern Luzon' },
-  { id: 'hiligaynon', name: 'Hiligaynon', nativeName: 'Ilonggo', region: 'Western Visayas' },
-  { id: 'waray', name: 'Waray-Waray', nativeName: 'Winaray', region: 'Eastern Visayas' },
-  { id: 'tagalog', name: 'Tagalog / Filipino', nativeName: 'Wikang Tagalog', region: 'National / NCR' },
-  { id: 'kapampangan', name: 'Kapampangan', nativeName: 'Amanung Kapampangan', region: 'Central Luzon' },
-  { id: 'pangasinan', name: 'Pangasinan', nativeName: 'Salitan Pangasinan', region: 'Pangasinan' },
-  { id: 'chavacano', name: 'Chavacano', nativeName: 'Chavacano de Zamboanga', region: 'Zamboanga Peninsula' },
-];
+export function getRegionProfile(key: RegionKey): RegionProfile {
+  return REGION_PROFILES[key];
+}
 
+// ─── Sample Lessons ───────────────────────────────────────────────────────
 export const SAMPLE_LESSONS: SampleLesson[] = [
   {
     id: 'math_grade3',
@@ -178,9 +113,9 @@ Students will draw a diagram showing how food travels from a nearby agricultural
 Topic: Community Places, Transportation, and Helper Occupations
 
 STORY: A DAY IN THE TOWN
-On a sunny Monday, Ben and his mother woke up early. They walked to the subway station and rode the metro train to the Grand Central Mall. 
+On a sunny Monday, Ben and his mother woke up early. They walked to the subway station and rode the metro train to the Grand Central Mall.
 
-First, they visited Mr. Peterson at the bakery to buy 4 fresh cinnamon rolls for $1 each. Next, they walked to the big supermarket to buy milk and oranges. 
+First, they visited Mr. Peterson at the bakery to buy 4 fresh cinnamon rolls for $1 each. Next, they walked to the big supermarket to buy milk and oranges.
 
 Before heading home, Ben saw Firefighter Jim driving a red fire engine past the city library. Ben waved and said, "Thank you for keeping our neighborhood safe!"
 

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import * as pdfParseModule from 'pdf-parse';
 import mammoth from 'mammoth';
 
-const pdfParse = (pdfParseModule as any).default || pdfParseModule;
+// pdf-parse is CommonJS-only — must use require() in Next.js App Router
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const pdfParse = require('pdf-parse') as (buffer: Buffer) => Promise<{ text: string }>;
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,11 +11,11 @@ export async function POST(req: NextRequest) {
     let fileName = 'Uploaded_Document.txt';
 
     const contentType = req.headers.get('content-type') || '';
-    
+
     if (contentType.includes('multipart/form-data')) {
       const formData = await req.formData();
       const file = formData.get('file') as File | null;
-      
+
       if (file) {
         fileName = file.name;
         const mimeType = file.type;

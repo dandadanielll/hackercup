@@ -19,7 +19,6 @@ export function buildDiffSegments(localizedText: string, changes: ChangeItem[]):
     return [{ id: 'seg-0', text: localizedText, isChange: false }];
   }
 
-  // Find all match occurrences in localizedText
   interface MatchOccurrence {
     start: number;
     end: number;
@@ -42,7 +41,6 @@ export function buildDiffSegments(localizedText: string, changes: ChangeItem[]):
 
       const endIdx = foundIdx + searchTarget.length;
 
-      // Check for overlap with existing match occurrences
       const hasOverlap = occurrences.some(
         (occ) => (foundIdx >= occ.start && foundIdx < occ.end) || (endIdx > occ.start && endIdx <= occ.end)
       );
@@ -51,7 +49,7 @@ export function buildDiffSegments(localizedText: string, changes: ChangeItem[]):
         occurrences.push({
           start: foundIdx,
           end: endIdx,
-          replacement: localizedText.slice(foundIdx, endIdx), // preserve exact casing from text
+          replacement: localizedText.slice(foundIdx, endIdx),
           changeIndex: changeIdx,
           change,
         });
@@ -61,14 +59,12 @@ export function buildDiffSegments(localizedText: string, changes: ChangeItem[]):
     }
   });
 
-  // Sort occurrences by start position
   occurrences.sort((a, b) => a.start - b.start);
 
   const segments: DiffSegment[] = [];
   let currentIndex = 0;
 
   occurrences.forEach((occ, idx) => {
-    // Unchanged text preceding the match
     if (occ.start > currentIndex) {
       segments.push({
         id: `seg-plain-${currentIndex}`,
@@ -77,7 +73,6 @@ export function buildDiffSegments(localizedText: string, changes: ChangeItem[]):
       });
     }
 
-    // Changed text
     segments.push({
       id: `seg-change-${occ.start}-${idx}`,
       text: occ.replacement,
@@ -85,13 +80,13 @@ export function buildDiffSegments(localizedText: string, changes: ChangeItem[]):
       changeIndex: occ.changeIndex,
       original: occ.change.original,
       replacement: occ.replacement,
-      category: occ.change.category,
+      // Use entityType as style key if available, otherwise fall back to category
+      category: (occ.change as any).entityType || occ.change.category,
     });
 
     currentIndex = occ.end;
   });
 
-  // Remaining plain text
   if (currentIndex < localizedText.length) {
     segments.push({
       id: `seg-plain-end-${currentIndex}`,
@@ -103,13 +98,24 @@ export function buildDiffSegments(localizedText: string, changes: ChangeItem[]):
   return segments;
 }
 
+// Returns the display-key for a change item for CATEGORY_COLORS lookup
+export function getChangeColorKey(change: ChangeItem): string {
+  if (change.category === 'scenario_reframe') return 'scenario_reframe';
+  return (change as any).entityType || change.category || 'other';
+}
+
 export const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string; label: string }> = {
-  transportation: { bg: 'bg-emerald-100', text: 'text-emerald-950', border: 'border-emerald-500', label: 'Transport' },
-  place: { bg: 'bg-teal-100', text: 'text-teal-950', border: 'border-teal-500', label: 'Place / Store' },
-  store: { bg: 'bg-teal-100', text: 'text-teal-950', border: 'border-teal-500', label: 'Store' },
-  food: { bg: 'bg-green-100', text: 'text-green-950', border: 'border-green-500', label: 'Food & Produce' },
-  currency: { bg: 'bg-emerald-200', text: 'text-emerald-900', border: 'border-emerald-600', label: 'Currency' },
-  name: { bg: 'bg-emerald-100', text: 'text-emerald-900', border: 'border-emerald-400', label: 'Local Name' },
-  cultural: { bg: 'bg-emerald-100', text: 'text-emerald-900', border: 'border-emerald-500', label: 'Cultural' },
-  other: { bg: 'bg-emerald-100', text: 'text-emerald-950', border: 'border-emerald-500', label: 'Substituted' },
+  // entity sub-types (entityType field)
+  transport:        { bg: 'bg-emerald-100', text: 'text-emerald-950', border: 'border-emerald-500', label: 'Transport' },
+  place:            { bg: 'bg-teal-100',    text: 'text-teal-950',    border: 'border-teal-500',    label: 'Place / Store' },
+  store:            { bg: 'bg-teal-100',    text: 'text-teal-950',    border: 'border-teal-500',    label: 'Store' },
+  food:             { bg: 'bg-green-100',   text: 'text-green-950',   border: 'border-green-500',   label: 'Food & Produce' },
+  currency:         { bg: 'bg-emerald-200', text: 'text-emerald-900', border: 'border-emerald-600', label: 'Currency' },
+  character_name:   { bg: 'bg-sky-100',     text: 'text-sky-900',     border: 'border-sky-400',     label: 'Local Name' },
+  name:             { bg: 'bg-sky-100',     text: 'text-sky-900',     border: 'border-sky-400',     label: 'Local Name' },
+  cultural:         { bg: 'bg-emerald-100', text: 'text-emerald-900', border: 'border-emerald-500', label: 'Cultural' },
+  other:            { bg: 'bg-emerald-100', text: 'text-emerald-950', border: 'border-emerald-500', label: 'Substituted' },
+  entity:           { bg: 'bg-emerald-100', text: 'text-emerald-950', border: 'border-emerald-500', label: 'Entity' },
+  // Scenario-level reframe — amber/orange so teachers notice full rewrites prominently
+  scenario_reframe: { bg: 'bg-amber-100',   text: 'text-amber-950',   border: 'border-amber-500',   label: '⚡ Scenario Reframe' },
 };
