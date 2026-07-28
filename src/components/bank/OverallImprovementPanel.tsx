@@ -49,9 +49,7 @@ export function OverallImprovementPanel({
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({
           resource_id: resource.id,
-          review_id: null, // null = overall plan
-          resource_text: currentContent,
-          feedback: allFeedback,
+          mode: "overall",
         }),
       });
 

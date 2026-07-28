@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { CheckCircle, XCircle, Loader2, Bot, Edit3 } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, Bot, Info } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import type { BankAiSuggestion } from "./types";
 
@@ -20,14 +20,49 @@ export function SuggestedEditDiff({
   onAccepted,
   onRejected,
 }: SuggestedEditDiffProps) {
-  const { feedback_addressed, issue_identified, proposed_edit, teacher_action } =
-    suggestion.suggestion_json;
-
-  const [editedProposal, setEditedProposal] = useState(proposed_edit);
+  const json = suggestion.suggestion_json;
   const [accepting, setAccepting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
 
+  if (json.outcome === 'no_change') {
+    return (
+      <div className="rounded-xl border border-amber-300 bg-amber-50/60 p-4 space-y-3">
+        <div className="flex items-center gap-2 text-amber-900">
+          <Info className="w-4 h-4 text-amber-600 shrink-0" />
+          <span className="text-xs font-extrabold uppercase tracking-wider">
+            Review Analysis — No Revision Required
+          </span>
+        </div>
+
+        <div className="space-y-2 text-sm text-amber-950">
+          <div>
+            <span className="font-bold">Feedback Summary: </span>
+            <span>{json.feedback_summary}</span>
+          </div>
+          <div>
+            <span className="font-bold">Reason: </span>
+            <span>{json.reason_no_change}</span>
+          </div>
+          <div>
+            <span className="font-bold">Teacher Guidance: </span>
+            <span>{json.teacher_action}</span>
+          </div>
+        </div>
+
+        <div className="pt-1 flex justify-end">
+          <button
+            type="button"
+            onClick={onRejected}
+            className="aralkada-btn-secondary text-xs py-1.5 px-3"
+          >
+            Dismiss
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Outcome is 'actionable'
   const handleAccept = async () => {
     setAccepting(true);
     setError(null);
@@ -40,24 +75,22 @@ export function SuggestedEditDiff({
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({
           suggestion_id: suggestion.id,
-          new_content: editedProposal,
         }),
       });
+
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
         throw new Error(j.error || "Failed to accept edit.");
       }
-      onAccepted(editedProposal);
+
+      const data = await res.json();
+      onAccepted(data.resource.content_text);
     } catch (err: any) {
       setError(err.message);
     } finally {
       setAccepting(false);
     }
   };
-
-  // Compute a simple line-level diff for display
-  const originalLines = currentContent.split("\n");
-  const proposedLines = editedProposal.split("\n");
 
   return (
     <div className="rounded-xl border-2 border-aralkada-blue/30 bg-aralkada-blue/5 p-4 space-y-4">
@@ -70,57 +103,43 @@ export function SuggestedEditDiff({
       </div>
 
       {/* Structured output */}
-      <div className="space-y-2.5 text-sm">
+      <div className="space-y-2 text-sm">
         <div>
-          <span className="font-bold text-aralkada-border">Feedback addressed: </span>
-          <span className="text-aralkada-border/80">{feedback_addressed}</span>
+          <span className="font-bold text-aralkada-border">Feedback Summary: </span>
+          <span className="text-aralkada-border/80">{json.feedback_summary}</span>
         </div>
         <div>
-          <span className="font-bold text-aralkada-border">Issue identified: </span>
-          <span className="text-aralkada-border/80">{issue_identified}</span>
+          <span className="font-bold text-aralkada-border">Issue Identified: </span>
+          <span className="text-aralkada-border/80">{json.issue_identified}</span>
         </div>
         <div>
-          <span className="font-bold text-aralkada-border">Teacher action to consider: </span>
-          <span className="text-aralkada-border/80">{teacher_action}</span>
+          <span className="font-bold text-aralkada-border">Evidence from Review: </span>
+          <span className="italic text-aralkada-border/80">"{json.evidence_from_review}"</span>
+        </div>
+        <div>
+          <span className="font-bold text-aralkada-border">Teacher Action: </span>
+          <span className="text-aralkada-border/80">{json.teacher_action}</span>
         </div>
       </div>
 
-      {/* Diff / proposed edit */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <span className="font-bold text-sm text-aralkada-border">Proposed edit</span>
-          <button
-            onClick={() => setIsEditing((v) => !v)}
-            className="flex items-center gap-1 text-xs font-bold text-aralkada-muted hover:text-aralkada-blue transition-colors"
-          >
-            <Edit3 className="w-3 h-3" />
-            {isEditing ? "Preview" : "Edit proposal"}
-          </button>
-        </div>
-
-        {isEditing ? (
-          <textarea
-            value={editedProposal}
-            onChange={(e) => setEditedProposal(e.target.value)}
-            rows={10}
-            className="aralkada-input text-xs font-mono resize-y"
-          />
-        ) : (
-          <div className="bg-white rounded-xl border border-aralkada-border/15 p-4 max-h-56 overflow-y-auto text-xs font-mono leading-relaxed">
-            {proposedLines.map((line, i) => {
-              const origLine = originalLines[i] ?? "";
-              const changed = line !== origLine;
-              return (
-                <div
-                  key={i}
-                  className={changed ? "bg-emerald-50 text-emerald-800 -mx-1 px-1 rounded" : "text-aralkada-border/70"}
-                >
-                  {line || "\u00A0"}
-                </div>
-              );
-            })}
+      {/* Target & Replacement preview */}
+      <div className="space-y-2 bg-white rounded-xl border border-aralkada-border/15 p-3 text-xs font-mono">
+        {json.edit_kind === 'replace' && json.target_excerpt && (
+          <div>
+            <span className="font-bold text-rose-700 block mb-1">Target Excerpt to Replace:</span>
+            <div className="bg-rose-50 border border-rose-200 text-rose-900 p-2 rounded whitespace-pre-wrap">
+              - {json.target_excerpt}
+            </div>
           </div>
         )}
+        <div>
+          <span className="font-bold text-emerald-700 block mb-1">
+            {json.edit_kind === 'replace' ? 'Replacement Text:' : 'New Content to Append:'}
+          </span>
+          <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 p-2 rounded whitespace-pre-wrap">
+            + {json.replacement_text}
+          </div>
+        </div>
       </div>
 
       {error && (

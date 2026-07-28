@@ -72,8 +72,7 @@ function ReviewCard({
         body: JSON.stringify({
           resource_id: resource.id,
           review_id: review.id,
-          resource_text: currentContent,
-          feedback: review.comment,
+          mode: "review",
         }),
       });
       if (!res.ok) {

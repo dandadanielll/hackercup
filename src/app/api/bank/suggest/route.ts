@@ -1,15 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/src/lib/supabase';
-import { createClient } from '@supabase/supabase-js';
+import { requireDemoTeacher } from '@/src/lib/bank/demoTeacher';
+import { validateAndParseSuggestion } from '@/src/lib/bank/suggestion';
 import Groq from 'groq-sdk';
-
-function getUserClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
-}
 
 function getGroqClient(): Groq | null {
   const apiKey = process.env.GROQ_API_KEY?.trim();
@@ -18,92 +11,159 @@ function getGroqClient(): Groq | null {
 }
 
 // POST /api/bank/suggest
-// Authenticated: generate a structured AI suggestion from resource text + review feedback
+// Authenticated (Seeded Teacher Only): generate a grounded suggestion from database canonical text & reviews
 export async function POST(req: NextRequest) {
   try {
-    const authHeader = req.headers.get('authorization') ?? '';
-    const token = authHeader.replace('Bearer ', '');
-    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const userClient = getUserClient();
-    const { data: { user }, error: authError } = await userClient.auth.getUser(token);
-    if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await requireDemoTeacher(req);
+    if (authResult instanceof NextResponse) return authResult;
 
     const body = await req.json();
-    const { resource_id, review_id, resource_text, feedback } = body;
+    const { resource_id, mode, review_id } = body;
 
-    if (!resource_id) return NextResponse.json({ error: 'resource_id is required' }, { status: 400 });
-    if (!resource_text?.trim()) return NextResponse.json({ error: 'resource_text is required' }, { status: 400 });
-    if (!feedback?.trim()) return NextResponse.json({ error: 'feedback is required' }, { status: 400 });
+    if (!resource_id) {
+      return NextResponse.json({ error: 'resource_id is required', stage: 'validation' }, { status: 400 });
+    }
+    if (mode !== 'review' && mode !== 'overall') {
+      return NextResponse.json({ error: "mode must be 'review' or 'overall'", stage: 'validation' }, { status: 400 });
+    }
+    if (mode === 'review' && !review_id) {
+      return NextResponse.json({ error: "review_id is required when mode is 'review'", stage: 'validation' }, { status: 400 });
+    }
 
-    const systemPrompt = `You are a constructive educational content editor assisting Filipino teachers.
-Your job: analyze a lesson resource and specific reviewer feedback, then produce ONE concrete, content-only improvement suggestion.
+    const admin = getSupabaseAdmin();
 
-STRICT RULES:
-1. Base your suggestion ONLY on the resource text and the reviewer feedback provided.
-2. Do NOT invent facts, standards codes, or citation-based claims that are not in the resource.
-3. Do NOT apply the change automatically. Present it as a draft for teacher review.
-4. Keep the proposed_edit as a complete replacement of the relevant section, or the full resource text with the edit applied.
-5. Keep proposed_edit under 5,000 characters.
+    // Fetch canonical resource content
+    const { data: resource, error: resErr } = await admin
+      .from('bank_resources')
+      .select('id, title, content_text')
+      .eq('id', resource_id)
+      .single();
 
-Respond in this exact JSON format:
-{
-  "feedback_addressed": "One sentence describing which part of the reviewer's feedback you are addressing.",
-  "issue_identified": "One sentence describing the concrete problem in the resource.",
-  "proposed_edit": "The full resource text with your suggested content edit applied. Label your changes clearly with [SUGGESTED:] tags.",
-  "teacher_action": "One sentence of guidance for the teacher on what to consider before accepting."
-}`;
+    if (resErr || !resource) {
+      return NextResponse.json({ error: 'Resource not found', stage: 'validation' }, { status: 404 });
+    }
 
-    const userMessage = `REVIEWER FEEDBACK:\n${feedback}\n\nRESOURCE TEXT:\n${resource_text.slice(0, 15000)}`;
+    const canonicalText = resource.content_text;
+    let feedbackSnapshot = '';
 
-    let suggestionJson: any;
+    if (mode === 'review') {
+      const { data: review, error: revErr } = await admin
+        .from('bank_reviews')
+        .select('*')
+        .eq('id', review_id)
+        .eq('resource_id', resource_id)
+        .single();
+
+      if (revErr || !review) {
+        return NextResponse.json({ error: 'Review not found or does not belong to this resource', stage: 'validation' }, { status: 404 });
+      }
+      feedbackSnapshot = `[Review by ${review.author_label} (${review.rating}/5 stars)]: ${review.comment}`;
+    } else {
+      // Overall mode: aggregate all reviews for this resource
+      const { data: reviews, error: revsErr } = await admin
+        .from('bank_reviews')
+        .select('*')
+        .eq('resource_id', resource_id)
+        .order('created_at', { ascending: true });
+
+      if (revsErr || !reviews || reviews.length === 0) {
+        return NextResponse.json({ error: 'No reviews exist for this resource yet to generate an overall improvement.', stage: 'validation' }, { status: 400 });
+      }
+      feedbackSnapshot = reviews
+        .map((r: any) => `[${r.author_label} - ${r.rating}/5 stars]: ${r.comment}`)
+        .join('\n');
+    }
 
     const groq = getGroqClient();
-    if (groq) {
-      try {
-        const response = await groq.chat.completions.create({
-          model: 'llama-3.3-70b-versatile',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userMessage },
-          ],
-          response_format: { type: 'json_object' },
-          temperature: 0.3,
-        });
-        suggestionJson = JSON.parse(response.choices[0]?.message?.content || '{}');
-      } catch (aiErr: any) {
-        console.warn('Groq call failed, using fallback:', aiErr.message);
-        suggestionJson = null;
-      }
+    if (!groq) {
+      return NextResponse.json(
+        { error: 'Groq API key is not configured on the server. AI suggestions are currently unavailable.', stage: 'configuration' },
+        { status: 503 }
+      );
     }
 
-    // Fallback if Groq unavailable
-    if (!suggestionJson) {
-      suggestionJson = {
-        feedback_addressed: "The reviewer's general feedback about the resource content.",
-        issue_identified: "The resource could benefit from more locally relevant examples and clearer activity instructions.",
-        proposed_edit: resource_text + "\n\n[SUGGESTED: Add a locally-themed word problem or activity based on reviewer feedback above.]",
-        teacher_action: "Review the suggested addition and adapt it to match your students' local context before accepting.",
-      };
+    const systemPrompt = `You are a constructive educational editor assisting Filipino teachers.
+Analyze a lesson resource and peer feedback to decide if a text edit is required.
+
+CONTRACT:
+1. If the feedback consists ONLY of praise, general positive comments, or vague remarks without requesting a specific change or improvement, you MUST set outcome="no_change".
+2. Never invent an issue or problem that the reviewer did not explicitly raise.
+3. For outcome="no_change", state why no edit is needed in reason_no_change.
+4. For outcome="actionable", quote the exact evidence from the review in evidence_from_review, describe the issue in issue_identified, and provide one specific content edit.
+5. If edit_kind="replace", target_excerpt MUST be an EXACT substring quoted verbatim from the resource text.
+
+Respond in this exact JSON structure:
+For NO CHANGE needed:
+{
+  "outcome": "no_change",
+  "feedback_summary": "Summary of reviewer comments",
+  "reason_no_change": "Explanation of why no content revision is necessary",
+  "teacher_action": "Guidance for the teacher"
+}
+
+For ACTIONABLE edit needed:
+{
+  "outcome": "actionable",
+  "feedback_summary": "Summary of reviewer feedback",
+  "issue_identified": "Specific issue raised by reviewer",
+  "evidence_from_review": "Verbatim quote or proof from feedback",
+  "edit_kind": "replace" or "append",
+  "target_excerpt": "Exact substring from resource text if replace, or null if append",
+  "replacement_text": "New content text to insert or replace with",
+  "teacher_action": "Guidance for the teacher before accepting"
+}`;
+
+    const userMessage = `RESOURCE TEXT:\n${canonicalText.slice(0, 15000)}\n\nPEER REVIEW FEEDBACK:\n${feedbackSnapshot}`;
+
+    let groqContent = '';
+    try {
+      const response = await groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage },
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.2,
+      });
+      groqContent = response.choices[0]?.message?.content ?? '';
+    } catch (aiErr: any) {
+      console.error('Groq call failed:', aiErr);
+      return NextResponse.json(
+        { error: `Groq AI service unavailable: ${aiErr.message}`, stage: 'ai_generation' },
+        { status: 503 }
+      );
     }
 
-    // Validate keys exist
-    const required = ['feedback_addressed', 'issue_identified', 'proposed_edit', 'teacher_action'];
-    for (const key of required) {
-      if (!suggestionJson[key]) {
-        suggestionJson[key] = 'AI could not generate this field. Please try again.';
-      }
+    let parsedJson: any;
+    try {
+      parsedJson = JSON.parse(groqContent);
+    } catch (jsonErr) {
+      return NextResponse.json(
+        { error: 'Groq returned invalid JSON output.', stage: 'ai_validation' },
+        { status: 502 }
+      );
     }
 
-    // Persist the suggestion
-    const admin = getSupabaseAdmin();
+    let groundedSuggestion: any;
+    try {
+      groundedSuggestion = validateAndParseSuggestion(parsedJson, canonicalText);
+    } catch (valErr: any) {
+      console.warn('Grounded suggestion validation failed:', valErr.message);
+      return NextResponse.json(
+        { error: `AI suggestion failed validation: ${valErr.message}`, stage: 'ai_validation' },
+        { status: 502 }
+      );
+    }
+
+    // Persist the validated suggestion
     const { data: savedSuggestion, error: saveErr } = await admin
       .from('bank_ai_suggestions')
       .insert({
         resource_id,
-        review_id: review_id ?? null,
-        feedback_snapshot: feedback.slice(0, 5000),
-        suggestion_json: suggestionJson,
+        review_id: mode === 'review' ? review_id : null,
+        feedback_snapshot: feedbackSnapshot.slice(0, 5000),
+        suggestion_json: groundedSuggestion,
         status: 'pending',
       })
       .select()

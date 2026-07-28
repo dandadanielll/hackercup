@@ -32,12 +32,25 @@ export interface BankReview {
   created_at: string;
 }
 
-export interface SuggestionJson {
-  feedback_addressed: string;
-  issue_identified: string;
-  proposed_edit: string;
+export type NoChangeSuggestionJson = {
+  outcome: 'no_change';
+  feedback_summary: string;
+  reason_no_change: string;
   teacher_action: string;
-}
+};
+
+export type ActionableSuggestionJson = {
+  outcome: 'actionable';
+  feedback_summary: string;
+  issue_identified: string;
+  evidence_from_review: string;
+  edit_kind: 'replace' | 'append';
+  target_excerpt: string | null;
+  replacement_text: string;
+  teacher_action: string;
+};
+
+export type SuggestionJson = NoChangeSuggestionJson | ActionableSuggestionJson;
 
 export interface BankAiSuggestion {
   id: string;
