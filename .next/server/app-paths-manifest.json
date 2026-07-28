@@ -1,3 +1,4 @@
 {
+  "/api/localize/route": "app/api/localize/route.js",
   "/page": "app/page.js"
 }
