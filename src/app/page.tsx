@@ -1,14 +1,13 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Header } from '../components/Header';
 import { UploadSection } from '../components/UploadSection';
 import { DiffViewer } from '../components/DiffViewer';
 import { TranslationCard } from '../components/TranslationCard';
 import { ExportSection } from '../components/ExportSection';
 import { LocalizeResponse, ChangeItem } from '../types';
 import { PHILIPPINE_REGIONS } from '../data/regionsAndLanguages';
-import { AlertTriangle, Sparkles, Heart } from 'lucide-react';
+import { AlertTriangle, GraduationCap } from 'lucide-react';
 
 export default function App() {
   const [lessonText, setLessonText] = useState<string>('');
@@ -53,7 +52,6 @@ export default function App() {
       const data: LocalizeResponse = await res.json();
       setLocalizeData(data);
 
-      // Scroll to diff viewer smoothly
       setTimeout(() => {
         document.getElementById('diff-viewer')?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
@@ -86,12 +84,33 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col antialiased selection:bg-indigo-100">
-      {/* Navbar */}
-      <Header onReset={handleReset} />
+    <div className="min-h-full px-8 py-10 max-w-[1200px] mx-auto">
+      {/* Page Header matching ARALKADA style */}
+      <div className="mb-10">
+        <div className="inline-flex items-center gap-2 bg-aralkada-cream-pill px-4 py-1.5 rounded-full border-2 border-aralkada-border font-extrabold text-[10px] tracking-widest text-aralkada-sidebar mb-4 uppercase">
+          <GraduationCap className="w-3.5 h-3.5" />
+          Lesson Contextualizer
+        </div>
+        <h1 className="text-4xl font-extrabold tracking-tight mb-3">LokalSwap</h1>
+        <p className="text-aralkada-muted font-medium text-lg">
+          Upload any standard lesson plan and instantly translate it to Mother Tongue while swapping foreign cultural concepts for local equivalents.
+        </p>
+      </div>
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      {/* TABS (Visual only for now, showing steps) */}
+      <div className="flex border-b-2 border-aralkada-border/20 mb-8 font-extrabold text-sm tracking-wide uppercase gap-8">
+        <div className="pb-3 border-b-[3px] border-aralkada-blue text-aralkada-blue cursor-pointer">
+          1. Upload & Setup
+        </div>
+        <div className={`pb-3 border-b-[3px] cursor-pointer ${localizeData ? 'border-aralkada-blue text-aralkada-blue' : 'border-transparent text-aralkada-muted'}`}>
+          2. Contextualize & Diff
+        </div>
+        <div className={`pb-3 border-b-[3px] cursor-pointer ${localizeData ? 'border-aralkada-blue text-aralkada-blue' : 'border-transparent text-aralkada-muted'}`}>
+          3. Export
+        </div>
+      </div>
+
+      <div className="space-y-8">
         {/* Upload & Setup Section */}
         <UploadSection
           lessonText={lessonText}
@@ -108,54 +127,35 @@ export default function App() {
 
         {/* Error Alert */}
         {errorMsg && (
-          <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-center gap-3 shadow-2xs">
+          <div className="aralkada-card bg-rose-50 border-rose-600 !p-4 flex items-center gap-3">
             <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
             <div>
-              <span className="font-bold">Error: </span>
-              <span>{errorMsg}</span>
+              <span className="font-bold text-rose-900">Error: </span>
+              <span className="font-medium text-rose-800">{errorMsg}</span>
             </div>
           </div>
         )}
 
         {/* Output Section */}
         {localizeData && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            {/* Step 5: Visual Diff Review */}
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-16">
             <DiffViewer
               data={localizeData}
               onUpdateLocalizedText={handleUpdateLocalizedText}
             />
 
-            {/* Step 6: Dialect Translation Card */}
             <TranslationCard
               translation={localizeData.translation}
               onUpdateTranslationText={handleUpdateTranslationText}
             />
 
-            {/* Step 8: Export Options */}
             <ExportSection
               data={localizeData}
               regionName={currentRegionObj.name}
             />
           </div>
         )}
-      </main>
-
-      {/* Footer */}
-      <footer className="bg-slate-900 text-slate-400 text-xs border-t border-slate-800 py-6 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-200">LokalSwap</span>
-            <span>— Mother Tongue & Regional Contextualizer for Philippine Teachers</span>
-          </div>
-
-          <div className="flex items-center gap-1 text-slate-400">
-            <span>Built with</span>
-            <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500 inline" />
-            <span>for Philippine Education & DepEd MTB-MLE classrooms</span>
-          </div>
-        </div>
-      </footer>
+      </div>
     </div>
   );
 }

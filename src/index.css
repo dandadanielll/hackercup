@@ -1,1 +1,45 @@
 @import "tailwindcss";
+
+@theme {
+  --color-aralkada-sidebar: #354228;
+  --color-aralkada-main: #F4EEDF;
+  --color-aralkada-border: #463E2C;
+  --color-aralkada-blue: #0CA6E9;
+  --color-aralkada-green: #4ADE80;
+  --color-aralkada-yellow: #FDE047;
+  --color-aralkada-cream-pill: #E9E2CF;
+  --color-aralkada-muted: #8E8775;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-aralkada-main);
+    color: var(--color-aralkada-border);
+  }
+}
+
+@layer components {
+  .aralkada-card {
+    @apply bg-aralkada-main border-aralkada-border border-2 sm:border-[3px] rounded-2xl sm:rounded-[2rem] overflow-hidden relative;
+  }
+  
+  .aralkada-card-inner {
+    @apply p-6 sm:p-8;
+  }
+
+  .aralkada-btn-primary {
+    @apply bg-aralkada-blue text-white font-bold py-2 px-6 rounded-full border-aralkada-border border-2 hover:brightness-110 active:scale-95 transition-all duration-200 cursor-pointer text-sm sm:text-base;
+  }
+
+  .aralkada-btn-secondary {
+    @apply bg-aralkada-cream-pill text-aralkada-border font-bold py-2 px-6 rounded-full border-aralkada-border border-2 hover:bg-white active:scale-95 transition-all duration-200 cursor-pointer text-sm sm:text-base;
+  }
+
+  .aralkada-btn-yellow {
+    @apply bg-aralkada-yellow text-aralkada-border font-bold py-2 px-6 rounded-full border-aralkada-border border-2 hover:brightness-110 active:scale-95 transition-all duration-200 cursor-pointer text-sm sm:text-base;
+  }
+
+  .aralkada-input {
+    @apply w-full bg-white border-aralkada-border border-2 rounded-xl sm:rounded-2xl p-4 font-medium placeholder:text-aralkada-muted focus:outline-none focus:ring-4 focus:ring-aralkada-blue/20 transition-all;
+  }
+}
