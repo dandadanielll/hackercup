@@ -21,11 +21,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${jakarta.variable} font-sans antialiased bg-aralkada-main text-aralkada-border flex h-screen overflow-hidden selection:bg-aralkada-blue/20`}>
+      <body className={`${jakarta.variable} font-sans antialiased bg-aralkada-sidebar text-aralkada-border flex flex-col md:flex-row h-[100dvh] overflow-hidden selection:bg-aralkada-blue/20`}>
         <Sidebar />
-        <div className="flex-1 overflow-y-auto">
-          {children}
-        </div>
+        <main className="flex-1 flex flex-col h-full pt-2 px-2 pb-0 md:pt-4 md:pb-4 md:pr-4 md:pl-1 overflow-hidden">
+          <div className="flex-1 overflow-y-auto bg-aralkada-main rounded-t-[2rem] md:rounded-[2.5rem] md:border-2 border-aralkada-border shadow-xl">
+            {children}
+          </div>
+        </main>
       </body>
     </html>
   );

@@ -84,7 +84,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-full px-8 py-10 max-w-[1200px] mx-auto">
+    <div className="min-h-full px-4 md:px-8 py-6 md:py-10 max-w-[1200px] mx-auto">
       {/* Page Header matching ARALKADA style */}
       <div className="mb-10">
         <div className="inline-flex items-center gap-2 bg-aralkada-cream-pill px-4 py-1.5 rounded-full border-2 border-aralkada-border font-extrabold text-[10px] tracking-widest text-aralkada-sidebar mb-4 uppercase">
