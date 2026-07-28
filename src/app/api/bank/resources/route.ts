@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/src/lib/supabase';
 import { createClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
+import { RESOURCE_TYPES, SUBJECTS, GRADES } from '@/src/lib/bank/resourceInput';
 
 function getUserClient() {
   return createClient(
@@ -55,25 +55,40 @@ export async function POST(req: NextRequest) {
     const authHeader = req.headers.get('authorization') ?? '';
     const token = authHeader.replace('Bearer ', '');
     if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized. Please sign in.', stage: 'authorization' }, { status: 401 });
     }
 
     const userClient = getUserClient();
     const { data: { user }, error: authError } = await userClient.auth.getUser(token);
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Invalid auth token.', stage: 'authorization' }, { status: 401 });
     }
 
     const body = await req.json();
     const { teacher_name, title, resource_type, subject, grade_level, content_text } = body;
 
-    // Validate
-    if (!teacher_name?.trim()) return NextResponse.json({ error: 'teacher_name is required' }, { status: 400 });
-    if (!title?.trim() || title.trim().length < 3) return NextResponse.json({ error: 'title must be at least 3 characters' }, { status: 400 });
-    if (!['Module', 'Lesson Plan'].includes(resource_type)) return NextResponse.json({ error: 'Invalid resource_type' }, { status: 400 });
-    if (!['Numeracy', 'Literacy', 'Science', 'Filipino'].includes(subject)) return NextResponse.json({ error: 'Invalid subject' }, { status: 400 });
-    if (!content_text?.trim()) return NextResponse.json({ error: 'content_text is required' }, { status: 400 });
-    if (content_text.length > 50000) return NextResponse.json({ error: 'Content too long (max 50,000 chars)' }, { status: 400 });
+    // Strict metadata validation using resourceInput rules
+    if (!teacher_name?.trim()) {
+      return NextResponse.json({ error: 'Teacher Name is required.', stage: 'metadata' }, { status: 400 });
+    }
+    if (!title?.trim() || title.trim().length < 3) {
+      return NextResponse.json({ error: 'Title must be at least 3 characters.', stage: 'metadata' }, { status: 400 });
+    }
+    if (!RESOURCE_TYPES.includes(resource_type)) {
+      return NextResponse.json({ error: 'A manually selected resource type is required.', stage: 'metadata' }, { status: 400 });
+    }
+    if (!SUBJECTS.includes(subject)) {
+      return NextResponse.json({ error: 'A manually selected subject is required.', stage: 'metadata' }, { status: 400 });
+    }
+    if (!GRADES.includes(grade_level)) {
+      return NextResponse.json({ error: 'A manually selected grade level is required.', stage: 'metadata' }, { status: 400 });
+    }
+    if (!content_text?.trim()) {
+      return NextResponse.json({ error: 'Extracted content text is required.', stage: 'metadata' }, { status: 400 });
+    }
+    if (content_text.length > 50000) {
+      return NextResponse.json({ error: 'Content exceeds max limit (50,000 characters).', stage: 'metadata' }, { status: 400 });
+    }
 
     const admin = getSupabaseAdmin();
     const { data, error } = await admin
@@ -84,7 +99,7 @@ export async function POST(req: NextRequest) {
         title: title.trim(),
         resource_type,
         subject,
-        grade_level: grade_level ?? null,
+        grade_level,
         content_text: content_text.trim(),
         is_published: true,
       })
@@ -96,6 +111,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ resource: data }, { status: 201 });
   } catch (err: any) {
     console.error('POST /api/bank/resources error:', err);
-    return NextResponse.json({ error: err.message || 'Failed to save resource' }, { status: 500 });
+    return NextResponse.json({ error: err.message || 'Resource could not be saved. Try again.', stage: 'persistence' }, { status: 500 });
   }
 }
+
