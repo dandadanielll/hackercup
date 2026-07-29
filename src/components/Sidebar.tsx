@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { BookOpen, Star, GraduationCap, ChevronLeft, ChevronRight } from 'lucide-react';
+import KonLogo from '../utils/Kon.png';
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -28,8 +29,8 @@ export function Sidebar() {
   };
 
   const navItems = [
-    { icon: GraduationCap, label: 'LokalSwap', href: '/' },
-    { icon: BookOpen, label: 'BayanQuest', href: '/bayanquest' },
+    { icon: GraduationCap, label: 'KonTeksto', href: '/' },
+    { icon: BookOpen, label: 'Tuklas', href: '/bayanquest' },
     { icon: Star, label: 'LokalBank', href: '#' },
   ];
 
@@ -52,16 +53,16 @@ export function Sidebar() {
 
       {/* Logo Placeholder (Hidden on Mobile) */}
       <Link href="/" className="hidden md:flex px-6 pt-12 pb-6 items-center cursor-pointer overflow-hidden h-[120px]">
-        <div className="w-12 h-12 flex items-center justify-center shrink-0 bg-aralkada-cream-pill text-aralkada-sidebar rounded-xl font-bold text-xl border-2 border-aralkada-border">
-          LS
+        <div className="w-12 h-12 flex items-center justify-center shrink-0 overflow-hidden">
+          <img src={KonLogo.src} alt="Kon Mascot Logo" className="w-full h-full object-contain" />
         </div>
         <div className={`overflow-hidden transition-all duration-300 flex items-center ${isCollapsed ? 'w-0 opacity-0 pointer-events-none ml-0' : 'w-48 opacity-100 ml-4'}`}>
-          <span className="font-extrabold text-2xl tracking-tighter text-aralkada-cream-pill whitespace-nowrap mt-1">LokalSwap</span>
+          <span className="font-extrabold text-2xl tracking-tighter text-aralkada-cream-pill whitespace-nowrap mt-1">KonTeksto</span>
         </div>
       </Link>
 
       {/* Navigation */}
-      <nav className="flex-1 flex flex-row md:flex-col justify-around md:justify-start px-2 md:px-4 space-x-1 md:space-x-0 space-y-0 md:space-y-2 mt-0 md:mt-4 overflow-x-auto md:overflow-y-auto items-center md:items-stretch">
+      <nav className="flex-1 flex flex-row md:flex-col justify-around md:justify-center px-2 md:px-4 space-x-1 md:space-x-0 space-y-0 md:space-y-2 mt-0 md:mt-0 overflow-x-auto md:overflow-y-auto items-center md:items-stretch md:-translate-y-8">
         {navItems.map((item, i) => {
           const Icon = item.icon;
           const isActive = pathname === item.href || (pathname.startsWith(item.href) && item.href !== '/');
