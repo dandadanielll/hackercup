@@ -42,7 +42,7 @@ export function Sidebar() {
       ${transitionEnabled ? 'transition-all duration-300' : 'transition-none [&_*]:!transition-none'}
       order-last md:order-first pb-2 md:pb-0 pt-2 md:pt-0 border-t-2 md:border-t-0 border-aralkada-border
     `}>
-      
+
       {/* Toggle Button (Hidden on Mobile) */}
       <button
         onClick={handleToggle}
@@ -66,17 +66,16 @@ export function Sidebar() {
         {navItems.map((item, i) => {
           const Icon = item.icon;
           const isActive = pathname === item.href || (pathname.startsWith(item.href) && item.href !== '/');
-          
+
           return (
             <Link
               key={i}
               href={item.href}
               title={isCollapsed ? item.label : ""}
-              className={`flex flex-col md:flex-row items-center justify-center px-4 py-2 md:py-4 rounded-xl md:rounded-full font-bold cursor-pointer transition-colors flex-1 md:flex-none max-w-[120px] md:max-w-none ${
-                isActive 
-                  ? 'bg-aralkada-cream-pill text-aralkada-sidebar' 
+              className={`flex flex-col md:flex-row items-center justify-center px-4 py-2 md:py-4 rounded-xl md:rounded-full font-bold cursor-pointer transition-colors flex-1 md:flex-none max-w-[120px] md:max-w-none ${isActive
+                  ? 'bg-aralkada-cream-pill text-aralkada-sidebar'
                   : 'text-aralkada-main/70 hover:text-aralkada-main md:hover:bg-white/5'
-              }`}
+                }`}
             >
               <div className="shrink-0 w-6 flex items-center justify-center mb-1 md:mb-0">
                 <Icon className="w-5 h-5 md:w-6 md:h-6" strokeWidth={isActive ? 2.5 : 2} />

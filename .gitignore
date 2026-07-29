@@ -7,4 +7,6 @@ coverage/
 .env*
 !.env.example
 .next/
-
+skills/
+hackerCup-Vault/
+docs/superpowers/specs/
