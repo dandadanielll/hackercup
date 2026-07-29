@@ -1,4 +1,4 @@
-# LokalSwap 
+# KonTeksto
 
 > AI Cultural & Geographic Contextualizer for Philippine Classrooms
 
