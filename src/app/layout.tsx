@@ -15,7 +15,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head>
-        <title>AralKada — Philippine Teacher Tools</title>
+        <title>KonTeksto — Philippine Teacher Tools</title>
         <meta name="description" content="Mother Tongue & Regional Contextualizer + Community Vault for Philippine Teachers" />
       </head>
       <body className={`${jakarta.variable} font-sans antialiased bg-aralkada-sidebar text-aralkada-border flex flex-col md:flex-row h-[100dvh] overflow-hidden selection:bg-aralkada-blue/20`}>
