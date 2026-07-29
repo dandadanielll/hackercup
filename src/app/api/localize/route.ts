@@ -256,7 +256,7 @@ Respond ONLY with JSON:
 
     for (let attempt_num = 0; attempt_num < 2; attempt_num++) {
       try {
-        result = await withTimeout(attempt(), 8_000);
+        result = await withTimeout(attempt(), 25_000);
         break;
       } catch (e: any) {
         lastError = e.message;

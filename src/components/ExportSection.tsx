@@ -11,7 +11,6 @@ interface ExportSectionProps {
 export const ExportSection: React.FC<ExportSectionProps> = ({ data, regionName, uploadMetadata }) => {
   const [copiedType, setCopiedType] = useState<string | null>(null);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
-  const [publishState, setPublishState] = useState<'idle' | 'confirming' | 'publishing' | 'done'>('idle');
 
   const handleCopyText = async (text: string, typeKey: string) => {
     try {
@@ -205,85 +204,11 @@ export const ExportSection: React.FC<ExportSectionProps> = ({ data, regionName, 
       setIsExportingPdf(false);
     }
   };
-
-  const handlePublishToLokalBank = async () => {
-    if (publishState === 'idle') {
-      setPublishState('confirming');
-      return;
-    }
-    if (publishState === 'confirming') {
-      setPublishState('publishing');
-      // Simulate publish (wire up real API when LokalBank backend is ready)
-      await new Promise(r => setTimeout(r, 1500));
-      setPublishState('done');
-      setTimeout(() => setPublishState('idle'), 4000);
-    }
-  };
-
   return (
     <div id="export-section" className="space-y-4 mb-12">
 
-      {/* ── Publish to LokalBank ────────────────────────────────────────── */}
-      <div className="aralkada-card border-2 border-aralkada-border bg-aralkada-sidebar text-white">
-        <div className="aralkada-card-inner">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            <div>
-              <div className="flex items-center gap-3 mb-2 flex-wrap">
-                <span className="p-2 bg-aralkada-yellow rounded-xl border-2 border-aralkada-border">
-                  <Library className="w-5 h-5 text-aralkada-border" />
-                </span>
-                <h3 className="text-lg font-extrabold text-white">Publish to LokalBank</h3>
-                <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-aralkada-yellow text-aralkada-border border-2 border-aralkada-border uppercase tracking-wider">
-                  Teacher Verified
-                </span>
-              </div>
-              <p className="text-sm text-white/70 font-medium max-w-lg">
-                Share your verified, localized lesson with other teachers in your region. Published lessons appear in LokalBank for free reuse.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3 shrink-0">
-              {publishState === 'done' ? (
-                <div className="flex items-center gap-2 px-5 py-3 bg-aralkada-green rounded-2xl border-2 border-aralkada-border text-sm font-bold text-aralkada-border shadow-[3px_3px_0_0_#463E2C]">
-                  <CheckCircle2 className="w-4 h-4" /> Published to LokalBank!
-                </div>
-              ) : publishState === 'confirming' ? (
-                <div className="flex items-center gap-3 flex-wrap">
-                  <span className="text-sm text-white/80 font-medium">Publish for all teachers to see?</span>
-                  <button
-                    onClick={() => setPublishState('idle')}
-                    className="px-4 py-2 text-sm font-bold rounded-2xl bg-white/10 hover:bg-white/20 text-white border-2 border-white/20 transition-colors cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    id="confirm-publish-btn"
-                    onClick={handlePublishToLokalBank}
-                    className="aralkada-btn-yellow"
-                  >
-                    Yes, Publish
-                  </button>
-                </div>
-              ) : (
-                <button
-                  id="publish-lokalbank-btn"
-                  onClick={handlePublishToLokalBank}
-                  disabled={publishState === 'publishing'}
-                  className="aralkada-btn-yellow flex items-center gap-2 disabled:opacity-60"
-                >
-                  {publishState === 'publishing' ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" /> Publishing…</>
-                  ) : (
-                    <><Library className="w-4 h-4" /> Publish to LokalBank</>
-                  )}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* ── Export & Copy ───────────────────────────────────────────────── */}
+
       <div className="aralkada-card bg-aralkada-sidebar">
         <div className="aralkada-card-inner">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -300,30 +225,6 @@ export const ExportSection: React.FC<ExportSectionProps> = ({ data, regionName, 
             </div>
 
             <div className="flex flex-wrap items-center justify-end gap-3 w-full md:w-auto shrink-0">
-              <button
-                id="copy-localized-btn"
-                onClick={() => handleCopyText(data.localized, 'localized')}
-                className="aralkada-btn-secondary flex items-center gap-1.5"
-              >
-                {copiedType === 'localized' ? (
-                  <><Check className="w-4 h-4 text-aralkada-green inline" /> Copied!</>
-                ) : (
-                  <><Copy className="w-4 h-4 inline" /> Copy Localized Plan</>
-                )}
-              </button>
-
-              <button
-                id="copy-translation-export-btn"
-                onClick={() => handleCopyText(data.translation.text, 'translation')}
-                className="aralkada-btn-secondary flex items-center gap-1.5"
-              >
-                {copiedType === 'translation' ? (
-                  <><Check className="w-4 h-4 text-aralkada-green inline" /> Copied!</>
-                ) : (
-                  <><FileText className="w-4 h-4 inline" /> Copy Dialect Pass</>
-                )}
-              </button>
-
               <button
                 id="download-pdf-btn"
                 onClick={handleDownloadPdf}

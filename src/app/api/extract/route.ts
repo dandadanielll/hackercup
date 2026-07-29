@@ -6,31 +6,6 @@ import { validateResourceFile, MAX_RESOURCE_FILE_BYTES } from '@/src/lib/bank/re
 async function parsePdfBuffer(buffer: Buffer): Promise<string> {
   const uint8 = new Uint8Array(buffer);
 
-  // Strategy 1: Direct pdfjs-dist extraction
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
-    const loadingTask = pdfjsLib.getDocument({
-      data: uint8,
-      useSystemFonts: true,
-      disableFontFace: true,
-      isEvalSupported: false,
-    });
-    const doc = await loadingTask.promise;
-    let fullText = '';
-    for (let i = 1; i <= doc.numPages; i++) {
-      const page = await doc.getPage(i);
-      const content = await page.getTextContent();
-      const strings = content.items.map((item: any) => item.str ?? '');
-      fullText += strings.join(' ') + '\n';
-    }
-    if (fullText.trim()) {
-      return fullText.trim();
-    }
-  } catch (pdfjsErr) {
-    console.warn('pdfjs-dist strategy failed, trying pdf-parse:', pdfjsErr);
-  }
-
   // Strategy 2: pdf-parse module fallback
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
