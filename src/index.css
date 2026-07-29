@@ -43,3 +43,37 @@
     @apply w-full bg-white border-aralkada-border border-2 rounded-xl sm:rounded-2xl p-4 font-medium placeholder:text-aralkada-muted focus:outline-none focus:ring-4 focus:ring-aralkada-blue/20 transition-all;
   }
 }
+
+/* ── Custom Scrollbar ─────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 4px 0;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #463E2C;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #8E8775;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #463E2C transparent;
+}
+

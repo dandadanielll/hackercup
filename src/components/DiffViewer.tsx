@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Layers, Edit3, RotateCcw, Check, X, Info, Tag, ArrowRight } from 'lucide-react';
+import { Layers, Edit3, RotateCcw, Check, X, Info, Tag, ArrowRight, BookOpen, AlertTriangle } from 'lucide-react';
 import { LocalizeResponse, ChangeItem } from '../types';
-import { buildDiffSegments, DiffSegment, CATEGORY_COLORS } from '../utils/diffUtils';
+import { buildDiffSegments, DiffSegment, CATEGORY_COLORS, getChangeColorKey } from '../utils/diffUtils';
 
 interface DiffViewerProps {
   data: LocalizeResponse;
@@ -14,6 +14,9 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ data, onUpdateLocalizedT
 
   const segments = buildDiffSegments(data.localized, data.changes);
 
+  const entityCount = data.changes.filter(c => c.category === 'entity').length;
+  const scenarioCount = data.changes.filter(c => c.category === 'scenario_reframe').length;
+
   const handleSegmentClick = (segment: DiffSegment) => {
     if (!segment.isChange) return;
     setEditingSegment(segment);
@@ -22,40 +25,24 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ data, onUpdateLocalizedT
 
   const handleSaveEdit = () => {
     if (!editingSegment || !editingSegment.text) return;
-
     const oldText = editingSegment.text;
     const newText = editInputValue.trim();
-
-    if (!newText || oldText === newText) {
-      setEditingSegment(null);
-      return;
-    }
+    if (!newText || oldText === newText) { setEditingSegment(null); return; }
 
     const newLocalizedText = data.localized.replace(oldText, newText);
-
-    const updatedChanges = data.changes.map((c) => {
-      if (c.replacement.toLowerCase() === oldText.toLowerCase()) {
-        return { ...c, replacement: newText };
-      }
-      return c;
-    });
-
+    const updatedChanges = data.changes.map((c) =>
+      c.replacement.toLowerCase() === oldText.toLowerCase() ? { ...c, replacement: newText } : c
+    );
     onUpdateLocalizedText(newLocalizedText, updatedChanges);
     setEditingSegment(null);
   };
 
   const handleRestoreOriginal = () => {
     if (!editingSegment || !editingSegment.original) return;
-
-    const oldText = editingSegment.text;
-    const originalText = editingSegment.original;
-
-    const newLocalizedText = data.localized.replace(oldText, originalText);
-
+    const newLocalizedText = data.localized.replace(editingSegment.text, editingSegment.original);
     const updatedChanges = data.changes.filter(
-      (c) => c.replacement.toLowerCase() !== oldText.toLowerCase()
+      (c) => c.replacement.toLowerCase() !== editingSegment.text.toLowerCase()
     );
-
     onUpdateLocalizedText(newLocalizedText, updatedChanges);
     setEditingSegment(null);
   };
@@ -63,134 +50,160 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ data, onUpdateLocalizedT
   return (
     <div id="diff-viewer" className="aralkada-card mb-8">
       <div className="aralkada-card-inner">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 mb-4 border-b border-slate-200">
-          <div>
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-indigo-50 text-indigo-700 rounded-md border border-indigo-100">
-                <Layers className="w-4 h-4" />
-              </div>
-              <h2 className="text-base sm:text-lg font-bold text-slate-900">
-                Cultural Context Diff Review
-              </h2>
-              <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                {data.changes.length} {data.changes.length === 1 ? 'Substitution' : 'Substitutions'} Applied
+
+        {/* ── Competency Badge ── */}
+        {data.competencyMatch?.found && (
+          <div className="mb-6 flex flex-col gap-3">
+            <div className="inline-flex items-center gap-3 px-4 py-3 bg-aralkada-cream-pill border-2 border-aralkada-border rounded-2xl shadow-[3px_3px_0_0_#463E2C]">
+              <BookOpen className="w-5 h-5 text-aralkada-border shrink-0" />
+              <span className="text-sm font-bold text-aralkada-border">Grounded against MATATAG competency</span>
+              <span className="font-mono font-extrabold text-aralkada-border bg-aralkada-green px-3 py-1 rounded-full border-2 border-aralkada-border text-xs">
+                {data.competencyMatch.competencyCode}
+              </span>
+              <span className="hidden sm:inline text-sm text-aralkada-muted font-medium">
+                — {data.competencyMatch.competencyText}
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-1">
-              Green highlights mark every replaced cultural entity. Click any green item to edit or customize!
+            {data.competencyMatch.alignmentNote && (
+              <div className="flex items-start gap-3 px-4 py-3 bg-aralkada-yellow/30 border-2 border-aralkada-border rounded-2xl text-sm text-aralkada-border">
+                <AlertTriangle className="w-4 h-4 text-aralkada-border shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold">Alignment Note: </span>
+                  <span className="font-medium">{data.competencyMatch.alignmentNote}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Header ── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-6 border-b-2 border-aralkada-border/20">
+          <div>
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="p-2 bg-aralkada-cream-pill text-aralkada-border rounded-xl border-2 border-aralkada-border">
+                <Layers className="w-5 h-5" />
+              </div>
+              <h2 className="text-lg sm:text-xl font-extrabold text-aralkada-border">Cultural Context Diff Review</h2>
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-aralkada-green text-aralkada-border border-2 border-aralkada-border">
+                {entityCount} {entityCount === 1 ? 'Entity Swap' : 'Entity Swaps'}
+              </span>
+              {scenarioCount > 0 && (
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-aralkada-yellow text-aralkada-border border-2 border-aralkada-border">
+                  {scenarioCount} Scenario Reframe{scenarioCount > 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-aralkada-muted font-medium mt-2">
+              Green = entity swaps · Amber = full scenario rewrites. Click any highlight to edit.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-            <span className="text-slate-400 font-semibold mr-1">Legend:</span>
-            {Object.entries(CATEGORY_COLORS).slice(0, 5).map(([cat, style]) => (
-              <span
-                key={cat}
-                className={`px-2 py-0.5 rounded-md font-semibold border ${style.bg} ${style.text} ${style.border}`}
-              >
-                {style.label}
-              </span>
-            ))}
+          {/* Legend */}
+          <div className="flex flex-wrap items-center gap-2 text-xs shrink-0">
+            <span className="text-aralkada-muted font-bold uppercase tracking-wide mr-1">Legend:</span>
+            <span className="px-3 py-1 rounded-full font-bold border-2 bg-aralkada-green text-aralkada-border border-aralkada-border">Entity Swap</span>
+            <span className="px-3 py-1 rounded-full font-bold border-2 bg-aralkada-yellow text-aralkada-border border-aralkada-border">⚡ Scenario Reframe</span>
           </div>
         </div>
 
+        {/* ── Side-by-Side ── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="flex flex-col bg-white rounded-xl border-2 border-aralkada-border overflow-hidden">
-            <div className="bg-slate-100/80 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-slate-400" />
+          {/* Original */}
+          <div className="flex flex-col bg-aralkada-main rounded-[2rem] border-2 border-aralkada-border overflow-hidden">
+            <div className="bg-aralkada-cream-pill px-5 py-3.5 border-b-2 border-aralkada-border flex items-center justify-between">
+              <span className="text-sm font-bold text-aralkada-border flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-aralkada-muted" />
                 Original Lesson Plan
               </span>
-              <span className="text-[11px] text-slate-500 font-mono">
+              <span className="text-xs text-aralkada-muted font-bold">
                 {data.original.trim().split(/\s+/).length} words
               </span>
             </div>
-            <div className="p-4 text-xs font-mono text-slate-700 leading-relaxed whitespace-pre-wrap max-h-[500px] overflow-y-auto selection:bg-slate-200">
-              {data.original}
+            <div className="p-5 text-sm font-mono text-aralkada-border leading-relaxed whitespace-pre-wrap max-h-[500px] overflow-y-auto">
+              {data.original || <span className="text-aralkada-muted italic">No original text.</span>}
             </div>
           </div>
 
-          <div className="flex flex-col bg-white rounded-xl border-2 border-aralkada-border overflow-hidden relative">
-            <div className="bg-emerald-100/60 px-4 py-2.5 border-b border-emerald-200 flex items-center justify-between">
-              <span className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          {/* Localized */}
+          <div className="flex flex-col bg-aralkada-main rounded-[2rem] border-2 border-aralkada-border overflow-hidden relative">
+            <div className="bg-aralkada-green/40 px-5 py-3.5 border-b-2 border-aralkada-border flex items-center justify-between">
+              <span className="text-sm font-bold text-aralkada-border flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-aralkada-green border-2 border-aralkada-border animate-pulse" />
                 Contextualized Regional Version
               </span>
-              <span className="text-[11px] text-emerald-800 font-medium">
-                Click green tags to edit
-              </span>
+              <span className="text-xs text-aralkada-border font-bold">Click highlights to edit</span>
             </div>
 
-            <div className="p-4 text-xs font-mono text-slate-900 leading-relaxed whitespace-pre-wrap max-h-[500px] overflow-y-auto selection:bg-emerald-200">
-              {segments.map((seg) => {
-                if (!seg.isChange) {
-                  return <span key={seg.id}>{seg.text}</span>;
-                }
+            <div className="p-5 text-sm font-mono text-aralkada-border leading-relaxed whitespace-pre-wrap max-h-[500px] overflow-y-auto">
+              {segments.length === 0 ? (
+                <span className="text-aralkada-muted italic">No localized output yet.</span>
+              ) : (
+                segments.map((seg) => {
+                  if (!seg.isChange) return <span key={seg.id}>{seg.text}</span>;
+                  const colorKey = getChangeColorKey(data.changes[seg.changeIndex ?? 0]);
+                  const catStyle = CATEGORY_COLORS[colorKey] || CATEGORY_COLORS['other'];
+                  const isScenario = data.changes[seg.changeIndex ?? 0]?.category === 'scenario_reframe';
 
-                const catStyle =
-                  CATEGORY_COLORS[seg.category || 'other'] || CATEGORY_COLORS['other'];
-
-                return (
-                  <span
-                    key={seg.id}
-                    onClick={() => handleSegmentClick(seg)}
-                    className={`inline-flex items-center gap-1 px-1.5 py-0.5 my-0.5 mx-0.5 rounded font-semibold cursor-pointer transition-all border-b-2 ${catStyle.bg} ${catStyle.text} ${catStyle.border} hover:brightness-95 hover:scale-[1.02] shadow-2xs group relative`}
-                    title={`Original: "${seg.original}" → Click to edit`}
-                  >
-                    <span>{seg.text}</span>
-                    <Edit3 className="w-2.5 h-2.5 opacity-60 group-hover:opacity-100 transition-opacity" />
-                  </span>
-                );
-              })}
+                  return (
+                    <span
+                      key={seg.id}
+                      onClick={() => handleSegmentClick(seg)}
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 my-0.5 mx-0.5 rounded-lg font-bold cursor-pointer transition-all border-2 border-aralkada-border hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_#463E2C] group relative ${isScenario ? 'bg-aralkada-yellow/60' : 'bg-aralkada-green/50'}`}
+                      title={`Original: "${seg.original}" → Click to edit`}
+                    >
+                      {isScenario && <span className="text-[10px]">⚡</span>}
+                      <span>{seg.text}</span>
+                      <Edit3 className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity" />
+                    </span>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>
 
-        <div className="mt-4 pt-3 border-t border-slate-200/80 flex flex-wrap items-center gap-2">
-          <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
-            <Tag className="w-3.5 h-3.5 text-indigo-600" /> Key Substitutions:
+        {/* ── Substitution pill list ── */}
+        <div className="mt-6 pt-5 border-t-2 border-aralkada-border/20 flex flex-wrap items-center gap-2">
+          <span className="text-sm font-bold text-aralkada-border flex items-center gap-1.5 mr-1">
+            <Tag className="w-4 h-4 text-aralkada-border" /> Substitutions:
           </span>
-          {data.changes.map((item, idx) => (
-            <div
-              key={idx}
-              className="text-[11px] bg-slate-50 text-slate-800 px-2.5 py-1 rounded-md border border-slate-200 flex items-center gap-1"
-            >
-              <span className="text-slate-500 line-through">{item.original}</span>
-              <ArrowRight className="w-2.5 h-2.5 text-emerald-600" />
-              <span className="font-bold text-emerald-900">{item.replacement}</span>
-            </div>
-          ))}
+          {data.changes.map((item, idx) => {
+            const isScenario = item.category === 'scenario_reframe';
+            return (
+              <div
+                key={idx}
+                className={`text-xs px-3 py-1.5 rounded-full border-2 border-aralkada-border flex items-center gap-1.5 font-bold shadow-[2px_2px_0_0_#463E2C] ${
+                  isScenario ? 'bg-aralkada-yellow/60 text-aralkada-border' : 'bg-aralkada-cream-pill text-aralkada-border'
+                }`}
+              >
+                {isScenario && <span className="text-[10px]">⚡</span>}
+                <span className="text-aralkada-muted line-through truncate max-w-[80px] font-medium">{item.original}</span>
+                <ArrowRight className="w-3 h-3 text-aralkada-border shrink-0" />
+                <span className="truncate max-w-[80px]">{item.replacement}</span>
+              </div>
+            );
+          })}
         </div>
 
+        {/* ── Edit Modal ── */}
         {editingSegment && (
-          <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-2xs flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-md w-full p-5 animate-in fade-in zoom-in-95 duration-150">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <Edit3 className="w-4 h-4 text-indigo-600" /> Edit Substitution
+          <div className="fixed inset-0 z-50 bg-aralkada-border/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-aralkada-main rounded-[2rem] shadow-xl border-2 border-aralkada-border max-w-md w-full p-6 animate-in fade-in zoom-in-95 duration-150">
+              <div className="flex items-center justify-between pb-4 border-b-2 border-aralkada-border/20">
+                <h3 className="text-base font-extrabold text-aralkada-border flex items-center gap-2">
+                  <Edit3 className="w-5 h-5 text-aralkada-border" /> Edit Substitution
                 </h3>
-                <button
-                  onClick={() => setEditingSegment(null)}
-                  className="text-slate-400 hover:text-slate-600 p-1 rounded-md hover:bg-slate-100 cursor-pointer"
-                >
+                <button onClick={() => setEditingSegment(null)} className="text-aralkada-muted hover:text-aralkada-border p-1.5 rounded-xl hover:bg-aralkada-cream-pill cursor-pointer border-2 border-transparent hover:border-aralkada-border transition-all">
                   <X className="w-4 h-4" />
                 </button>
               </div>
-
-              <div className="py-4 space-y-3">
+              <div className="py-5 space-y-4">
                 <div>
-                  <label className="text-[11px] font-bold text-slate-500 block mb-1">
-                    Original Term in Lesson Plan:
-                  </label>
-                  <div className="p-2 bg-slate-100 text-slate-700 text-xs font-mono rounded-md border border-slate-200 line-through">
-                    {editingSegment.original}
-                  </div>
+                  <label className="text-[11px] font-bold text-aralkada-muted uppercase tracking-wide block mb-1.5">Original:</label>
+                  <div className="p-3 bg-aralkada-cream-pill text-aralkada-muted text-sm font-mono rounded-2xl border-2 border-aralkada-border line-through">{editingSegment.original}</div>
                 </div>
-
                 <div>
-                  <label className="text-xs font-bold text-slate-800 block mb-1">
-                    Regional Substitution (Customizable):
-                  </label>
+                  <label className="text-sm font-bold text-aralkada-border block mb-1.5">Regional Substitution:</label>
                   <input
                     type="text"
                     value={editInputValue}
@@ -198,35 +211,22 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ data, onUpdateLocalizedT
                     className="aralkada-input"
                     placeholder="Type new replacement..."
                     autoFocus
+                    onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit()}
                   />
                 </div>
-
-                <p className="text-[11px] text-slate-500 flex items-center gap-1">
-                  <Info className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                <p className="text-xs font-medium text-aralkada-muted flex items-center gap-1.5">
+                  <Info className="w-3.5 h-3.5 text-aralkada-border shrink-0" />
                   Updating this will reflect live in both the diff viewer and translation card.
                 </p>
               </div>
-
-              <div className="flex items-center justify-between pt-3 border-t border-slate-100 gap-2">
-                <button
-                  onClick={handleRestoreOriginal}
-                  className="px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50 rounded-md transition-colors border border-rose-200 flex items-center gap-1 cursor-pointer"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" /> Revert to Original
+              <div className="flex items-center justify-between pt-4 border-t-2 border-aralkada-border/20 gap-2">
+                <button onClick={handleRestoreOriginal} className="px-4 py-2 text-sm font-bold text-aralkada-border hover:bg-aralkada-cream-pill rounded-2xl transition-colors border-2 border-aralkada-border flex items-center gap-1.5 cursor-pointer">
+                  <RotateCcw className="w-3.5 h-3.5" /> Revert
                 </button>
-
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setEditingSegment(null)}
-                    className="px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-md transition-colors cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSaveEdit}
-                    className="px-4 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors flex items-center gap-1 shadow-2xs cursor-pointer"
-                  >
-                    <Check className="w-3.5 h-3.5" /> Apply Change
+                  <button onClick={() => setEditingSegment(null)} className="px-4 py-2 text-sm font-bold text-aralkada-muted hover:bg-aralkada-cream-pill rounded-2xl transition-colors border-2 border-transparent hover:border-aralkada-border cursor-pointer">Cancel</button>
+                  <button onClick={handleSaveEdit} className="aralkada-btn-primary flex items-center gap-1.5">
+                    <Check className="w-4 h-4" /> Apply
                   </button>
                 </div>
               </div>

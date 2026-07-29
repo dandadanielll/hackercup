@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { Download, Copy, Check, FileText, Sparkles, Share2 } from 'lucide-react';
-import { LocalizeResponse } from '../types';
+import { Download, Copy, Check, FileText, Sparkles, Share2, Library, Loader2, CheckCircle2 } from 'lucide-react';
+import { LocalizeResponse, UploadMetadata } from '../types';
 
 interface ExportSectionProps {
   data: LocalizeResponse;
   regionName: string;
+  uploadMetadata: UploadMetadata;
 }
 
-export const ExportSection: React.FC<ExportSectionProps> = ({ data, regionName }) => {
+export const ExportSection: React.FC<ExportSectionProps> = ({ data, regionName, uploadMetadata }) => {
   const [copiedType, setCopiedType] = useState<string | null>(null);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   const handleCopyText = async (text: string, typeKey: string) => {
     try {
@@ -20,104 +22,222 @@ export const ExportSection: React.FC<ExportSectionProps> = ({ data, regionName }
     }
   };
 
-  const handleDownloadTxt = () => {
-    const fullContent = `================================================
-LOKALSWAP LOCALIZED LESSON PLAN
-Region: ${regionName}
-Target Language: ${data.translation.language}
-================================================
+  const handleDownloadPdf = async () => {
+    setIsExportingPdf(true);
+    try {
+      // Dynamic import to avoid SSR issues
+      const { jsPDF } = await import('jspdf');
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
-1. CONTEXTUALIZED LESSON PLAN (${regionName})
-------------------------------------------------
-${data.localized}
+      const pageW = doc.internal.pageSize.getWidth();
+      const pageH = doc.internal.pageSize.getHeight();
+      const margin = 18;
+      const contentWidth = pageW - margin * 2;
+      let y = margin;
 
-================================================
-2. MOTHER TONGUE DIALECT TRANSLATION (${data.translation.language})
-------------------------------------------------
-${data.translation.text}
+      const addPage = () => {
+        doc.addPage();
+        y = margin;
+      };
 
-Note: ${data.translation.notes || 'Reviewed via LokalSwap.'}
+      const checkPageBreak = (needed = 8) => {
+        if (y + needed > pageH - margin) addPage();
+      };
 
-================================================
-3. CULTURAL SUBSTITUTIONS APPLIED
-------------------------------------------------
-${data.changes.map((c) => `- ${c.original} -> ${c.replacement} (${c.category})`).join('\n')}
+      const addSectionHeader = (title: string, color: [number, number, number] = [63, 81, 181]) => {
+        checkPageBreak(14);
+        doc.setFillColor(...color);
+        doc.roundedRect(margin, y, contentWidth, 8, 2, 2, 'F');
+        doc.setFontSize(9);
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.text(title.toUpperCase(), margin + 4, y + 5.5);
+        doc.setTextColor(30, 30, 30);
+        y += 11;
+      };
 
-================================================
-4. ORIGINAL LESSON PLAN
-------------------------------------------------
-${data.original}
-`;
+      const addBodyText = (text: string, fontSize = 8.5, color: [number, number, number] = [40, 40, 40]) => {
+        doc.setFontSize(fontSize);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...color);
+        const lines = doc.splitTextToSize(text, contentWidth);
+        for (const line of lines) {
+          checkPageBreak(6);
+          doc.text(line, margin, y);
+          y += 5;
+        }
+        y += 2;
+      };
 
-    const blob = new Blob([fullContent], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `LokalSwap_LessonPlan_${regionName.replace(/[^a-zA-Z0-9]/g, '_')}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+      // ── Cover Header ──────────────────────────────────────────────────────
+      doc.setFillColor(45, 55, 72);
+      doc.rect(0, 0, pageW, 28, 'F');
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(255, 255, 255);
+      doc.text('LokalSwap', margin, 13);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(180, 200, 220);
+      doc.text('Localized Lesson Plan — MTB-MLE Ready', margin, 20);
+
+      // Meta badge strip
+      doc.setFillColor(237, 242, 255);
+      doc.rect(0, 28, pageW, 12, 'F');
+      doc.setFontSize(8);
+      doc.setTextColor(80, 80, 120);
+      doc.setFont('helvetica', 'bold');
+      const metaText = [
+        `Region: ${regionName}`,
+        `Language: ${data.translation.language}`,
+        `Grade ${uploadMetadata.grade}`,
+        `${uploadMetadata.subject.charAt(0).toUpperCase() + uploadMetadata.subject.slice(1)}`,
+        `Q${uploadMetadata.quarter}`,
+      ].join('   •   ');
+      doc.text(metaText, margin, 36);
+
+      y = 46;
+
+      // Competency grounding badge
+      if (data.competencyMatch?.found) {
+        doc.setFillColor(236, 253, 245);
+        doc.roundedRect(margin, y, contentWidth, 10, 2, 2, 'F');
+        doc.setDrawColor(52, 211, 153);
+        doc.setLineWidth(0.5);
+        doc.roundedRect(margin, y, contentWidth, 10, 2, 2, 'S');
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(6, 95, 70);
+        doc.text(`MATATAG Competency: ${data.competencyMatch.competencyCode}`, margin + 3, y + 4);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(20, 83, 45);
+        const compText = doc.splitTextToSize(data.competencyMatch.competencyText || '', contentWidth - 6);
+        if (compText[0]) doc.text(compText[0], margin + 3, y + 8);
+        y += 14;
+      }
+
+      y += 2;
+
+      // ── Section 1: Localized Plan ─────────────────────────────────────────
+      addSectionHeader(`1. Contextualized Lesson Plan — ${regionName}`, [63, 81, 181]);
+      addBodyText(data.localized);
+
+      // ── Section 2: Substitutions ──────────────────────────────────────────
+      addSectionHeader('2. Cultural Substitutions Applied', [30, 130, 100]);
+      const entityChanges = data.changes.filter(c => c.category === 'entity');
+      const scenarioChanges = data.changes.filter(c => c.category === 'scenario_reframe');
+
+      if (entityChanges.length > 0) {
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(60, 60, 60);
+        checkPageBreak(6);
+        doc.text('Entity Swaps:', margin, y);
+        y += 5;
+        for (const c of entityChanges) {
+          checkPageBreak(5);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(80, 80, 80);
+          doc.text(`  • "${c.original}"  →  "${c.replacement}"${c.entityType ? ` (${c.entityType})` : ''}`, margin, y);
+          y += 4.5;
+        }
+        y += 2;
+      }
+
+      if (scenarioChanges.length > 0) {
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(180, 100, 0);
+        checkPageBreak(6);
+        doc.text('⚡ Scenario Reframes (teacher review recommended):', margin, y);
+        y += 5;
+        for (const c of scenarioChanges) {
+          checkPageBreak(5);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(120, 70, 0);
+          const lines = doc.splitTextToSize(`  • "${c.original}"  →  "${c.replacement}"`, contentWidth - 4);
+          for (const line of lines) {
+            checkPageBreak(5);
+            doc.text(line, margin, y);
+            y += 4.5;
+          }
+        }
+        y += 2;
+      }
+
+      // ── Section 3: Mother-tongue Translation ──────────────────────────────
+      addSectionHeader(`3. Mother Tongue Translation — ${data.translation.language}`, [100, 60, 180]);
+      addBodyText(data.translation.text);
+      if (data.translation.notes) {
+        doc.setFontSize(7.5);
+        doc.setFont('helvetica', 'italic');
+        doc.setTextColor(100, 100, 120);
+        checkPageBreak(6);
+        doc.text(`Teacher Note: ${data.translation.notes}`, margin, y);
+        y += 8;
+      }
+
+      // ── Section 4: Original ───────────────────────────────────────────────
+      addSectionHeader('4. Original Lesson Plan (Reference)', [100, 100, 110]);
+      addBodyText(data.original, 8, [80, 80, 80]);
+
+      // ── Footer on every page ──────────────────────────────────────────────
+      const totalPages = (doc.internal as any).getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(7);
+        doc.setTextColor(160, 160, 160);
+        doc.setFont('helvetica', 'normal');
+        doc.text(
+          `LokalSwap  •  ${regionName}  •  ${data.translation.language}  •  Page ${i} of ${totalPages}`,
+          margin,
+          pageH - 8
+        );
+      }
+
+      const safeRegion = regionName.replace(/[^a-zA-Z0-9]/g, '_');
+      doc.save(`LokalSwap_${safeRegion}_G${uploadMetadata.grade}_${uploadMetadata.subject}_Q${uploadMetadata.quarter}.pdf`);
+    } catch (err) {
+      console.error('PDF export failed:', err);
+      alert('PDF export failed. Please try again.');
+    } finally {
+      setIsExportingPdf(false);
+    }
   };
-
   return (
-    <div id="export-section" className="aralkada-card mb-12 bg-aralkada-sidebar text-white">
-      <div className="aralkada-card-inner">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="p-1.5 bg-aralkada-blue text-white rounded-md">
-                <Share2 className="w-4 h-4" />
-              </span>
-              <h3 className="text-base sm:text-lg font-bold">
-                Export & Share Localized Lesson Plan
-              </h3>
+    <div id="export-section" className="space-y-4 mb-12">
+
+      {/* ── Export & Copy ───────────────────────────────────────────────── */}
+
+      <div className="aralkada-card bg-aralkada-sidebar">
+        <div className="aralkada-card-inner">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <span className="p-2 bg-aralkada-blue rounded-xl border-2 border-aralkada-border">
+                  <Share2 className="w-5 h-5 text-white" />
+                </span>
+                <h3 className="text-lg font-extrabold text-white">Export & Share</h3>
+              </div>
+              <p className="text-sm text-white/70 font-medium">
+                Download or copy for DepEd DLL, printing, or classroom distribution.
+              </p>
             </div>
-            <p className="text-xs text-white/70 mt-1">
-              Copy or download your finalized materials for printing, DepEd Daily Lesson Logs, or classroom distribution.
-            </p>
-          </div>
 
-          <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
-            <button
-              id="copy-localized-btn"
-              onClick={() => handleCopyText(data.localized, 'localized')}
-              className="aralkada-btn-secondary"
-            >
-              {copiedType === 'localized' ? (
-                <>
-                  <Check className="w-3.5 h-3.5 text-emerald-600 inline" /> Copied Plan!
-                </>
-              ) : (
-                <>
-                  <Copy className="w-3.5 h-3.5 inline" /> Copy Localized Plan
-                </>
-              )}
-            </button>
-
-            <button
-              id="copy-translation-export-btn"
-              onClick={() => handleCopyText(data.translation.text, 'translation')}
-              className="aralkada-btn-secondary"
-            >
-              {copiedType === 'translation' ? (
-                <>
-                  <Check className="w-3.5 h-3.5 text-emerald-600 inline" /> Copied Dialect!
-                </>
-              ) : (
-                <>
-                  <FileText className="w-3.5 h-3.5 inline" /> Copy Dialect Pass
-                </>
-              )}
-            </button>
-
-            <button
-              id="download-txt-btn"
-              onClick={handleDownloadTxt}
-              className="aralkada-btn-yellow text-aralkada-border"
-            >
-              <Download className="w-4 h-4 inline" /> Download .txt Package
-            </button>
+            <div className="flex flex-wrap items-center justify-end gap-3 w-full md:w-auto shrink-0">
+              <button
+                id="download-pdf-btn"
+                onClick={handleDownloadPdf}
+                disabled={isExportingPdf}
+                className="aralkada-btn-yellow flex items-center gap-1.5 disabled:opacity-60"
+              >
+                {isExportingPdf ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Generating PDF…</>
+                ) : (
+                  <><Download className="w-4 h-4" /> Download PDF</>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>
