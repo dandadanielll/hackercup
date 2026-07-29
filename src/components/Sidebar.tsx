@@ -31,7 +31,7 @@ export function Sidebar() {
   const navItems = [
     { icon: GraduationCap, label: 'KonTeksto', href: '/' },
     { icon: BookOpen, label: 'Tuklas', href: '/bayanquest' },
-    { icon: Star, label: 'LokalBank', href: '#' },
+    { icon: Star, label: 'LokalBank', href: '/lokalbank' },
   ];
 
   return (

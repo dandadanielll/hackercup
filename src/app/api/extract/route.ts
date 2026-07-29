@@ -8,7 +8,8 @@ async function parsePdfBuffer(buffer: Buffer): Promise<string> {
 
   // Strategy 1: Direct pdfjs-dist extraction
   try {
-    const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
     const loadingTask = pdfjsLib.getDocument({
       data: uint8,
       useSystemFonts: true,
@@ -32,7 +33,8 @@ async function parsePdfBuffer(buffer: Buffer): Promise<string> {
 
   // Strategy 2: pdf-parse module fallback
   try {
-    const pdfParseModule = await import('pdf-parse');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const pdfParseModule = require('pdf-parse');
     if ((pdfParseModule as any).PDFParse) {
       const parser = new (pdfParseModule as any).PDFParse(uint8);
       await parser.load();
