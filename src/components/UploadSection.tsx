@@ -343,7 +343,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4 text-white" />
-                    LokalSwap It!
+                    KonTekstify It!
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}

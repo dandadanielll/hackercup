@@ -44,7 +44,7 @@ JSON OUTPUT SCHEMA:
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { moduleContent, questionCount = 5 } = body;
+    const { moduleContent, questionCount = 5, region = 'ncr' } = body;
 
     if (!moduleContent) {
       return NextResponse.json({ error: 'Module content is required' }, { status: 400 });
@@ -57,11 +57,18 @@ export async function POST(req: Request) {
 
     const groq = new Groq({ apiKey });
 
+    let npcGenderRule = "";
+    if (region === 'bicol') {
+      npcGenderRule = "\n\n9. NPC GENDER REQUIREMENT: The selected NPC MUST be a female character (e.g., Aling Rosa the sari-sari store owner, Ate Gina, Lola Nena, etc.).";
+    } else if (region === 'ncr' || region === 'central_visayas') {
+      npcGenderRule = `\n\n9. NPC GENDER REQUIREMENT: The selected NPC MUST be a male character (e.g., Mang Cardo the fish vendor, Kuya Jun, Nong Mario, Kapitan Bert, Tatay Cardo, etc.).`;
+    }
+
     const completion = await groq.chat.completions.create({
       messages: [
         {
           role: 'system',
-          content: SYSTEM_PROMPT + `\n\n8. QUESTION COUNT: You MUST generate EXACTLY ${questionCount} questions for this quiz. Do not generate more or less.`,
+          content: SYSTEM_PROMPT + `\n\n8. QUESTION COUNT: You MUST generate EXACTLY ${questionCount} questions for this quiz. Do not generate more or less.` + npcGenderRule,
         },
         {
           role: 'user',

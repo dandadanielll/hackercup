@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mammoth from 'mammoth';
 
-// pdf-parse is CommonJS-only — must use require() in Next.js App Router
+// pdf-parse must use require() in Next.js to avoid webpack bundling issues with pdfjs-dist
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const pdfParse = require('pdf-parse') as (buffer: Buffer) => Promise<{ text: string }>;
+const { PDFParse } = require('pdf-parse');
+
+try {
+  // Fix for 'fake worker' resolving issue in Node.js/Next.js
+  PDFParse.setWorker(require('url').pathToFileURL(require.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs')).href);
+} catch (e) {
+  console.warn('Could not set PDF worker:', e);
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,7 +30,9 @@ export async function POST(req: NextRequest) {
         const buffer = Buffer.from(arrayBuffer);
 
         if (mimeType === 'application/pdf' || fileName.endsWith('.pdf')) {
-          const parsed = await pdfParse(buffer);
+          const parser = new PDFParse({ data: buffer, isWorker: false });
+          const parsed = await parser.getText();
+          await parser.destroy();
           extractedText = parsed.text;
         } else if (
           mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
@@ -46,7 +55,9 @@ export async function POST(req: NextRequest) {
         const buffer = Buffer.from(base64Data, 'base64');
 
         if (fileName.endsWith('.pdf')) {
-          const parsed = await pdfParse(buffer);
+          const parser = new PDFParse({ data: buffer, isWorker: false });
+          const parsed = await parser.getText();
+          await parser.destroy();
           extractedText = parsed.text;
         } else if (fileName.endsWith('.docx')) {
           const result = await mammoth.extractRawText({ buffer });

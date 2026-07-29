@@ -8,6 +8,7 @@ import { ExportSection } from '../components/ExportSection';
 import { LocalizeResponse, ChangeItem, UploadMetadata } from '../types';
 import { REGION_PROFILES } from '../data/regionsAndLanguages';
 import { AlertTriangle, GraduationCap } from 'lucide-react';
+import KonLogo from '../utils/Kon.png';
 
 const DEFAULT_METADATA: UploadMetadata = {
   grade: 3,
@@ -93,11 +94,14 @@ export default function App() {
     <div className="min-h-full flex flex-col">
       {/* Edge-to-edge Header */}
       <div className="bg-black/[0.06] border-b border-black/[0.08] pt-5 md:pt-6 pb-8 px-4 md:px-8">
-        <div className="max-w-[1200px] mx-auto">
-          <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight mb-1 text-[#362f21]">KonTeksto</h1>
-          <p className="text-[#77756e] font-medium text-sm md:text-base">
-            Upload any standard lesson plan and instantly translate it to Mother Tongue while swapping foreign cultural concepts for local equivalents.
-          </p>
+        <div className="max-w-[1200px] mx-auto flex items-center gap-5">
+          <img src={KonLogo.src} alt="Kon Mascot" className="hidden md:block w-24 h-24 object-contain drop-shadow-md" />
+          <div>
+            <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight mb-1 text-[#362f21]">KonTeksto</h1>
+            <p className="text-[#77756e] font-medium text-sm md:text-base">
+              Upload any standard lesson plan and instantly translate it to Mother Tongue while swapping foreign cultural concepts for local equivalents.
+            </p>
+          </div>
         </div>
       </div>
 
