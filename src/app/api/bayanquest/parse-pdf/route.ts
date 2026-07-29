@@ -16,9 +16,7 @@ export async function POST(req: Request) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    const parser = new PDFParse({ data: buffer, isWorker: false });
-    const pdfData = await parser.getText();
-    await parser.destroy();
+    const pdfData = await pdfParse(buffer);
 
     return NextResponse.json({ text: pdfData.text });
   } catch (error: any) {
